@@ -1,0 +1,435 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit Report Viewer</title>
+  <style>
+    :root {
+      --bg: #f6f7f4;
+      --panel: #ffffff;
+      --ink: #1f2a1f;
+      --muted: #5f6b60;
+      --line: #d8ddd4;
+      --accent: #1e6f5c;
+      --accent-soft: #e7f4ef;
+      --warn: #8a4b00;
+      --warn-soft: #fff2e4;
+      --high: #8f1d2c;
+      --high-soft: #fdecee;
+      --clean: #265f26;
+      --clean-soft: #e8f6e8;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, #ecf6f0 0%, transparent 35%),
+        radial-gradient(circle at 90% 20%, #fdf3e8 0%, transparent 40%),
+        var(--bg);
+    }
+
+    .wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 6px 22px rgba(20, 40, 20, 0.06);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 12px;
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      padding: 14px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      letter-spacing: 0.2px;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .kpi {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .kpi div {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      font-size: 12px;
+      background: #fcfdfb;
+    }
+
+    .kpi strong {
+      display: block;
+      font-size: 18px;
+      margin-top: 2px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 12px;
+    }
+
+    input[type="search"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    button:hover { border-color: #b8c4b7; }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .filters label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: #fff;
+    }
+
+    .links a {
+      display: block;
+      margin: 6px 0;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .main {
+      padding: 14px;
+      min-height: 80vh;
+    }
+
+    .banner {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      background: linear-gradient(90deg, #f4faf6, #fff8f1);
+      font-size: 13px;
+      color: #405042;
+    }
+
+    details.block {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    details.block[open] {
+      box-shadow: 0 6px 18px rgba(25, 44, 24, 0.07);
+    }
+
+    summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 10px 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-bottom: 1px solid transparent;
+    }
+
+    details[open] summary { border-bottom-color: var(--line); }
+
+    .path {
+      font-weight: 600;
+      font-size: 14px;
+      word-break: break-all;
+    }
+
+    .tag {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      color: #3d4a3f;
+      background: #f7faf6;
+    }
+
+    .risk-clean { background: var(--clean-soft); color: var(--clean); border-color: #bad8ba; }
+    .risk-medium { background: var(--warn-soft); color: var(--warn); border-color: #e5c8a2; }
+    .risk-high { background: var(--high-soft); color: var(--high); border-color: #ebafb7; }
+    .risk-critical { background: #f7dfe3; color: #6b0c1a; border-color: #dd8a98; }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      padding: 12px;
+      background: #fbfcfa;
+      color: #1c241d;
+    }
+
+    #summaryBox {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin: 0 0 12px;
+      background: #fff;
+    }
+
+    #summaryTitle {
+      padding: 10px 12px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--line);
+      background: #f6f9f6;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px 12px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 1020px) {
+      .wrap { grid-template-columns: 1fr; }
+      .sidebar { position: static; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel sidebar">
+      <h1>Audit Viewer</h1>
+      <div class="sub">Readable view without changing or dropping report data.</div>
+
+      <div class="kpi">
+        <div>Total Files<strong id="kpiTotal">0</strong></div>
+        <div>Visible Now<strong id="kpiVisible">0</strong></div>
+        <div>Summary Block<strong id="kpiSummary">No</strong></div>
+        <div>Report Source<strong>main branch</strong></div>
+      </div>
+
+      <input id="search" type="search" placeholder="Search by file, issue, keyword..." />
+
+      <div class="toolbar">
+        <button id="expandBtn" type="button">Expand all</button>
+        <button id="collapseBtn" type="button">Collapse all</button>
+      </div>
+
+      <div class="filters">
+        <label><input type="checkbox" value="CLEAN" checked /> CLEAN</label>
+        <label><input type="checkbox" value="LOW" checked /> LOW</label>
+        <label><input type="checkbox" value="MEDIUM" checked /> MEDIUM</label>
+        <label><input type="checkbox" value="HIGH" checked /> HIGH</label>
+        <label><input type="checkbox" value="CRITICAL" checked /> CRITICAL</label>
+      </div>
+
+      <div class="links">
+        <a href="./AUDIT_FULL_REPORT.md" target="_blank" rel="noopener">Open original Markdown</a>
+      </div>
+    </aside>
+
+    <main class="panel main">
+      <div class="banner">
+        This page reads <code>AUDIT_FULL_REPORT.md</code> and presents it in structured blocks for developers.
+      </div>
+
+      <section id="summaryBox" hidden>
+        <div id="summaryTitle">Audit Summary</div>
+        <pre id="summaryPre"></pre>
+      </section>
+
+      <section id="blocks"></section>
+      <div id="empty" class="empty" hidden>No blocks match current filters/search.</div>
+    </main>
+  </div>
+
+  <script>
+    function normalizeRisk(riskText) {
+      const t = (riskText || '').toUpperCase();
+      if (t.includes('CRITICAL')) return 'CRITICAL';
+      if (t.includes('HIGH')) return 'HIGH';
+      if (t.includes('MEDIUM')) return 'MEDIUM';
+      if (t.includes('LOW')) return 'LOW';
+      return 'CLEAN';
+    }
+
+    function riskClass(risk) {
+      if (risk === 'CRITICAL') return 'risk-critical';
+      if (risk === 'HIGH') return 'risk-high';
+      if (risk === 'MEDIUM') return 'risk-medium';
+      if (risk === 'LOW') return 'risk-medium';
+      return 'risk-clean';
+    }
+
+    function stripFrontMatter(text) {
+      if (text.startsWith('---')) {
+        const end = text.indexOf('\n---', 3);
+        if (end !== -1) {
+          return text.slice(end + 4).replace(/^\s+/, '');
+        }
+      }
+      return text;
+    }
+
+    function parseReport(text) {
+      const clean = stripFrontMatter(text);
+      const summaryMatch = clean.match(/\n## .*AUDIT SUMMARY REPORT[\s\S]*$/m);
+      const summaryText = summaryMatch ? summaryMatch[0].trim() : '';
+      const contentOnly = summaryMatch ? clean.slice(0, summaryMatch.index).trimEnd() : clean;
+
+      const matches = [...contentOnly.matchAll(/^## FILE: (.+)$/gm)];
+      const blocks = [];
+      for (let i = 0; i < matches.length; i++) {
+        const path = matches[i][1].trim();
+        const start = matches[i].index;
+        const end = i + 1 < matches.length ? matches[i + 1].index : contentOnly.length;
+        const block = contentOnly.slice(start, end).trim();
+
+        const type = (block.match(/^\*\*Type:\*\*\s*(.+)$/m) || [null, 'Unknown'])[1].trim();
+        const riskRaw = (block.match(/^\*\*Risk Level:\*\*\s*(.+)$/m) || [null, 'CLEAN'])[1].trim();
+        const risk = normalizeRisk(riskRaw);
+
+        blocks.push({ path, type, riskRaw, risk, block, lc: block.toLowerCase() });
+      }
+
+      return { blocks, summaryText };
+    }
+
+    function render(data) {
+      const blocksEl = document.getElementById('blocks');
+      const summaryBox = document.getElementById('summaryBox');
+      const summaryPre = document.getElementById('summaryPre');
+      const empty = document.getElementById('empty');
+      const search = document.getElementById('search');
+      const riskChecks = [...document.querySelectorAll('.filters input[type="checkbox"]')];
+
+      document.getElementById('kpiTotal').textContent = String(data.blocks.length);
+      document.getElementById('kpiSummary').textContent = data.summaryText ? 'Yes' : 'No';
+
+      if (data.summaryText) {
+        summaryBox.hidden = false;
+        summaryPre.textContent = data.summaryText;
+      }
+
+      function apply() {
+        const q = search.value.trim().toLowerCase();
+        const enabled = new Set(riskChecks.filter(x => x.checked).map(x => x.value));
+
+        blocksEl.innerHTML = '';
+        let visible = 0;
+
+        for (const item of data.blocks) {
+          if (!enabled.has(item.risk)) continue;
+          if (q && !item.lc.includes(q) && !item.path.toLowerCase().includes(q)) continue;
+
+          const d = document.createElement('details');
+          d.className = 'block';
+
+          const s = document.createElement('summary');
+          const p = document.createElement('span');
+          p.className = 'path';
+          p.textContent = item.path;
+
+          const t = document.createElement('span');
+          t.className = 'tag';
+          t.textContent = item.type;
+
+          const r = document.createElement('span');
+          r.className = 'tag ' + riskClass(item.risk);
+          r.textContent = item.riskRaw;
+
+          s.appendChild(p);
+          s.appendChild(t);
+          s.appendChild(r);
+
+          const pre = document.createElement('pre');
+          pre.textContent = item.block;
+
+          d.appendChild(s);
+          d.appendChild(pre);
+          blocksEl.appendChild(d);
+          visible++;
+        }
+
+        document.getElementById('kpiVisible').textContent = String(visible);
+        empty.hidden = visible !== 0;
+      }
+
+      search.addEventListener('input', apply);
+      riskChecks.forEach(c => c.addEventListener('change', apply));
+
+      document.getElementById('expandBtn').addEventListener('click', () => {
+        document.querySelectorAll('details.block').forEach(d => d.open = true);
+      });
+
+      document.getElementById('collapseBtn').addEventListener('click', () => {
+        document.querySelectorAll('details.block').forEach(d => d.open = false);
+      });
+
+      apply();
+    }
+
+    fetch('./AUDIT_FULL_REPORT.md', { cache: 'no-store' })
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to load AUDIT_FULL_REPORT.md');
+        return r.text();
+      })
+      .then(text => render(parseReport(text)))
+      .catch(err => {
+        const blocksEl = document.getElementById('blocks');
+        blocksEl.innerHTML = '';
+        const d = document.createElement('div');
+        d.className = 'empty';
+        d.textContent = err.message;
+        blocksEl.appendChild(d);
+      });
+  </script>
+</body>
+</html>
