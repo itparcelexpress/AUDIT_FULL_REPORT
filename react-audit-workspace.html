@@ -1,0 +1,594 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>React Audit Developer Workspace</title>
+  <style>
+    :root {
+      --bg: #0e1222;
+      --panel: #171d36;
+      --panel2: #1d2747;
+      --line: #34416f;
+      --text: #eef3ff;
+      --muted: #a9b5de;
+      --brand: #39d0ba;
+      --critical: #ff607a;
+      --high: #ff9e44;
+      --medium: #ffd36e;
+      --low: #6fd18d;
+      --clean: #7bd6ff;
+      --chip: #25325a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      color: var(--text);
+      background: radial-gradient(1000px 520px at 92% -8%, #232f57 0%, transparent 56%), var(--bg);
+    }
+    .layout {
+      max-width: 1540px;
+      margin: 0 auto;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 14px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: 0 10px 28px rgba(7, 10, 22, 0.45);
+    }
+    aside { padding: 14px; position: sticky; top: 8px; height: fit-content; }
+    h1 { margin: 0; font-size: 20px; }
+    .sub { color: var(--muted); font-size: 13px; margin: 8px 0 12px; }
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: #111933;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi strong { display: block; margin-top: 3px; color: var(--text); font-size: 18px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: #101831;
+      color: var(--text);
+      border-radius: 999px;
+      font-size: 12px;
+      padding: 6px 11px;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: linear-gradient(90deg, #18463e, #23685f);
+      border-color: #35bea9;
+      color: #f6fffd;
+    }
+    .search {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #0f1730;
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 9px;
+    }
+    .risk-filter { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 9px; }
+    .risk-filter label {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: var(--chip);
+      font-size: 11px;
+      color: #d8e1ff;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .btn {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #101831;
+      color: var(--text);
+      font-size: 12px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .links a { display: block; color: var(--brand); text-decoration: none; margin: 5px 0; font-size: 13px; }
+    main { padding: 12px; min-height: 82vh; }
+    .banner {
+      border: 1px solid #2a5774;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #18344d, #1c463f);
+      padding: 9px 12px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #101730;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .box h3 {
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--line);
+      background: #0d142a;
+    }
+    .box .body { padding: 10px 12px; }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 8px;
+      background: var(--chip);
+      font-size: 11px;
+      color: #dce4ff;
+      white-space: nowrap;
+    }
+    .critical { background: rgba(255,96,122,0.18); border-color: rgba(255,96,122,0.5); color: #ffd0d8; }
+    .high { background: rgba(255,158,68,0.18); border-color: rgba(255,158,68,0.5); color: #ffe1c2; }
+    .medium { background: rgba(255,211,110,0.18); border-color: rgba(255,211,110,0.5); color: #fff0c3; }
+    .low { background: rgba(111,209,141,0.18); border-color: rgba(111,209,141,0.5); color: #dcffe7; }
+    .clean { background: rgba(123,214,255,0.18); border-color: rgba(123,214,255,0.5); color: #d9f4ff; }
+    .risk-row { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+    .bar { flex: 1; height: 9px; border-radius: 99px; background: #2d3a67; overflow: hidden; }
+    .fill { height: 100%; }
+    .row {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 8px;
+      background: #111a33;
+      font-size: 13px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 6px; }
+    .mono { font-family: Consolas, "Courier New", monospace; font-size: 12px; }
+    .list { margin: 0; padding-left: 18px; }
+    .list li { margin: 7px 0; font-size: 13px; }
+    details.file {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      background: #111a33;
+    }
+    summary {
+      list-style: none;
+      padding: 9px 11px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      cursor: pointer;
+      border-bottom: 1px solid transparent;
+    }
+    details[open] summary { border-bottom-color: var(--line); }
+    .path { font-size: 14px; font-weight: 600; word-break: break-word; }
+    pre {
+      margin: 0;
+      padding: 12px;
+      background: #0d1428;
+      color: #eff3ff;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .pager { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    @media (max-width: 1120px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { position: static; }
+      .grid2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="card">
+      <h1>React Audit Workspace</h1>
+      <div class="sub">Merged delivery view for <code>AUDIT_FULL_REPORT.md</code> and <code>ACTION_PLAN.md</code>.</div>
+
+      <div class="kpis">
+        <div class="kpi">Audited Files<strong id="kpiFiles">0</strong></div>
+        <div class="kpi">Findings<strong id="kpiFindings">0</strong></div>
+        <div class="kpi">Queue Items<strong id="kpiQueue">0</strong></div>
+        <div class="kpi">Visible<strong id="kpiVisible">0</strong></div>
+      </div>
+
+      <div id="tabs" class="tabs">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="queue">Top Queue</button>
+        <button class="tab-btn" data-tab="clusters">Clusters</button>
+        <button class="tab-btn" data-tab="batches">Batches & DoD</button>
+        <button class="tab-btn" data-tab="security">Security</button>
+        <button class="tab-btn" data-tab="a11y">Accessibility</button>
+        <button class="tab-btn" data-tab="files">Files</button>
+        <button class="tab-btn" data-tab="summary">Summary</button>
+      </div>
+
+      <input id="search" class="search" placeholder="Search current tab..." />
+
+      <div class="risk-filter">
+        <label><input type="checkbox" value="CRITICAL" checked>CRITICAL</label>
+        <label><input type="checkbox" value="HIGH" checked>HIGH</label>
+        <label><input type="checkbox" value="MEDIUM" checked>MEDIUM</label>
+        <label><input type="checkbox" value="LOW" checked>LOW</label>
+        <label><input type="checkbox" value="CLEAN" checked>CLEAN</label>
+      </div>
+
+      <div class="toolbar">
+        <button id="expandFiles" class="btn" type="button">Expand files</button>
+        <button id="collapseFiles" class="btn" type="button">Collapse files</button>
+        <button id="copyQueue" class="btn" type="button">Copy queue</button>
+      </div>
+
+      <div class="links">
+        <a href="./ACTION_PLAN.md" target="_blank" rel="noopener">Open ACTION_PLAN.md</a>
+        <a href="./AUDIT_FULL_REPORT.md" target="_blank" rel="noopener">Open AUDIT_FULL_REPORT.md</a>
+      </div>
+    </aside>
+
+    <main class="card">
+      <div class="banner">Execution order: Top Queue -> Security/A11y tabs -> Batches & DoD -> Full file blocks for exact fixes.</div>
+      <section id="overview" class="tab-panel active"></section>
+      <section id="queue" class="tab-panel"></section>
+      <section id="clusters" class="tab-panel"></section>
+      <section id="batches" class="tab-panel"></section>
+      <section id="security" class="tab-panel"></section>
+      <section id="a11y" class="tab-panel"></section>
+      <section id="files" class="tab-panel"></section>
+      <section id="summary" class="tab-panel"></section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      tab: 'overview',
+      q: '',
+      risks: new Set(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'CLEAN']),
+      filesPage: 1,
+      perPage: 80,
+      audit: null,
+      action: null,
+    };
+
+    function stripFrontMatter(text) {
+      if (text.startsWith('---')) {
+        const end = text.indexOf('\n---', 3);
+        if (end !== -1) return text.slice(end + 4).replace(/^\s+/, '');
+      }
+      return text;
+    }
+
+    function riskNorm(raw) {
+      const t = (raw || '').toUpperCase();
+      if (t.includes('CRITICAL')) return 'CRITICAL';
+      if (t.includes('HIGH')) return 'HIGH';
+      if (t.includes('MEDIUM')) return 'MEDIUM';
+      if (t.includes('LOW')) return 'LOW';
+      return 'CLEAN';
+    }
+
+    function escapeHtml(s) {
+      return (s || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    }
+
+    function parseAudit(md) {
+      const text = stripFrontMatter(md);
+      const summaryIdx = text.indexOf('\n### Critical Issues Dashboard');
+      const core = summaryIdx >= 0 ? text.slice(0, summaryIdx).trimEnd() : text;
+      const summary = summaryIdx >= 0 ? text.slice(summaryIdx).trim() : '';
+
+      const step0 = (core.match(/## STEP 0[\s\S]*?---/) || [''])[0];
+
+      const headers = [...core.matchAll(/^### FILE: (.+)$/gm)];
+      const files = [];
+      const findings = [];
+
+      for (let i = 0; i < headers.length; i++) {
+        const path = headers[i][1].trim();
+        const start = headers[i].index;
+        const end = i + 1 < headers.length ? headers[i + 1].index : core.length;
+        const block = core.slice(start, end).trim();
+
+        const type = (block.match(/^\*\*Type:\*\*\s*(.+)$/m) || [null, 'Other'])[1].trim();
+        const riskRaw = (block.match(/^\*\*Risk Level:\*\*\s*(.+)$/m) || [null, 'CLEAN'])[1].trim();
+        const risk = riskNorm(riskRaw);
+
+        let section = 'General';
+        for (const line of block.split(/\r?\n/)) {
+          if (line.startsWith('#### ')) { section = line.replace(/^####\s+/, '').trim(); continue; }
+          if (!line.startsWith('- ')) continue;
+          const t = line.slice(2).trim();
+          if (!t || /no issues found/i.test(t)) continue;
+          if (/^Depends on:|^Used by:|^Breaking this affects:/i.test(t)) continue;
+          findings.push({ path, section, text: t, risk, lc: (path + ' ' + section + ' ' + t).toLowerCase() });
+        }
+
+        files.push({ path, type, riskRaw, risk, block, lc: block.toLowerCase() });
+      }
+
+      const dash = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, CLEAN: 0 };
+      files.forEach(f => dash[f.risk] = (dash[f.risk] || 0) + 1);
+      return { files, findings, dash, summary, step0 };
+    }
+
+    function parseAction(md) {
+      const text = stripFrontMatter(md);
+      const queueRows = [];
+      const rows = text.split(/\r?\n/).filter(l => /^\|\s*\d+\s*\|/.test(l));
+      for (const row of rows) {
+        const c = row.split('|').map(s => s.trim()).filter(Boolean);
+        if (c.length >= 5) queueRows.push({ idx: c[0], sev: c[1], file: c[2], issue: c[3], fix: c[4], lc: c.join(' ').toLowerCase() });
+      }
+
+      const clusterSec = (text.match(/## 2\. Issue Clusters Across Files[\s\S]*?(?=\n\n## 3\.)/) || [''])[0];
+      const clusters = [];
+      for (const part of clusterSec.split(/\n\n(?=\*\*Cluster:)/)) {
+        const name = (part.match(/\*\*Cluster:\s*(.+?)\*\*/) || [null, ''])[1];
+        if (!name) continue;
+        const affected = (part.match(/- Affected files:\s*(.+)/) || [null, ''])[1];
+        const count = (part.match(/- Count:\s*(.+)/) || [null, ''])[1];
+        const batch = (part.match(/- Batch fix:\s*(.+)/) || [null, ''])[1];
+        clusters.push({ name, affected, count, batch, lc: (name + affected + count + batch).toLowerCase() });
+      }
+
+      const batchSec = (text.match(/## 3\. Batch Execution Plan[\s\S]*?(?=\n\n## 4\.)/) || [''])[0];
+      const verifySec = (text.match(/## 4\. Verification Plan[\s\S]*?(?=\n\n## 5\.)/) || [''])[0];
+      const dodSec = (text.match(/## 5\. Definition of Done[\s\S]*$/) || [''])[0];
+
+      return { queueRows, clusters, batchSec, verifySec, dodSec, raw: text };
+    }
+
+    function sevClass(s) {
+      const t = (s || '').toUpperCase();
+      if (t.includes('CRITICAL')) return 'critical';
+      if (t.includes('HIGH')) return 'high';
+      if (t.includes('MEDIUM')) return 'medium';
+      if (t.includes('LOW')) return 'low';
+      if (t.includes('CLEAN')) return 'clean';
+      return 'medium';
+    }
+
+    function visibleFiles() {
+      const q = state.q.toLowerCase();
+      return state.audit.files.filter(f => state.risks.has(f.risk) && (!q || f.lc.includes(q) || f.path.toLowerCase().includes(q)));
+    }
+
+    function visibleFindings(filterFn) {
+      const q = state.q.toLowerCase();
+      return state.audit.findings.filter(x => state.risks.has(x.risk) && (!q || x.lc.includes(q)) && (!filterFn || filterFn(x)));
+    }
+
+    function renderOverview() {
+      const d = state.audit;
+      const total = d.files.length || 1;
+      const el = document.getElementById('overview');
+      el.innerHTML = `
+        <div class="grid2">
+          <div class="box">
+            <h3>Risk Distribution</h3>
+            <div class="body">
+              ${['CRITICAL','HIGH','MEDIUM','LOW','CLEAN'].map(k => {
+                const n = d.dash[k] || 0;
+                const p = Math.round((n/total)*100);
+                return `<div class="risk-row"><span class="pill ${sevClass(k)}">${k}: ${n}</span><div class="bar"><div class="fill ${sevClass(k)}" style="width:${p}%"></div></div><span class="pill">${p}%</span></div>`;
+              }).join('')}
+            </div>
+          </div>
+          <div class="box">
+            <h3>Action Plan Snapshot</h3>
+            <div class="body">
+              <ul class="list">
+                <li>Top queue items: <strong>${state.action.queueRows.length}</strong></li>
+                <li>Issue clusters: <strong>${state.action.clusters.length}</strong></li>
+                <li>Batches defined: <strong>5</strong></li>
+                <li>Verification + DoD: <strong>Present</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="box"><h3>Step 0 Context</h3><div class="body"><pre>${escapeHtml(state.audit.step0 || 'Not found')}</pre></div></div>
+      `;
+      document.getElementById('kpiVisible').textContent = String(d.files.length);
+    }
+
+    function renderQueue() {
+      const q = state.q.toLowerCase();
+      const rows = state.action.queueRows.filter(r => !q || r.lc.includes(q));
+      const el = document.getElementById('queue');
+      el.innerHTML = rows.map(r => `
+        <div class="row">
+          <div class="meta">
+            <span class="pill">#${escapeHtml(r.idx)}</span>
+            <span class="pill ${sevClass(r.sev)}">${escapeHtml(r.sev)}</span>
+            <span class="pill mono">${escapeHtml(r.file)}</span>
+          </div>
+          <div><strong>Issue:</strong> ${escapeHtml(r.issue)}</div>
+          <div><strong>Fix:</strong> ${escapeHtml(r.fix)}</div>
+        </div>
+      `).join('') || '<div class="box"><div class="body">No rows matched.</div></div>';
+      document.getElementById('kpiVisible').textContent = String(rows.length);
+    }
+
+    function renderClusters() {
+      const q = state.q.toLowerCase();
+      const rows = state.action.clusters.filter(c => !q || c.lc.includes(q));
+      document.getElementById('clusters').innerHTML = rows.map(c => `
+        <div class="row">
+          <div class="meta"><span class="pill medium">Cluster</span><span class="pill">${escapeHtml(c.name)}</span></div>
+          <div><strong>Affected files:</strong> ${escapeHtml(c.affected)}</div>
+          <div><strong>Count:</strong> ${escapeHtml(c.count)}</div>
+          <div><strong>Batch fix:</strong> ${escapeHtml(c.batch)}</div>
+        </div>
+      `).join('') || '<div class="box"><div class="body">No cluster matched.</div></div>';
+      document.getElementById('kpiVisible').textContent = String(rows.length);
+    }
+
+    function renderBatches() {
+      const txt = [state.action.batchSec, state.action.verifySec, state.action.dodSec].join('\n\n');
+      const q = state.q.toLowerCase();
+      const out = q ? txt.split(/\r?\n/).filter(l => l.toLowerCase().includes(q)).join('\n') : txt;
+      document.getElementById('batches').innerHTML = `<div class="box"><h3>Batch Plan / Verification / DoD</h3><div class="body"><pre>${escapeHtml(out)}</pre></div></div>`;
+      document.getElementById('kpiVisible').textContent = String(out ? out.split(/\r?\n/).length : 0);
+    }
+
+    function renderSecurity() {
+      const rows = visibleFindings(f => /SEC|security|token|secret|xss|csrf|dangerouslysetinnerhtml|storage|auth|csp|https|redirect/i.test(f.section + ' ' + f.text));
+      document.getElementById('security').innerHTML = rows.slice(0, 700).map(r => `
+        <div class="row">
+          <div class="meta">
+            <span class="pill ${sevClass(r.risk)}">${r.risk}</span>
+            <span class="pill">${escapeHtml(r.section)}</span>
+            <span class="pill mono">${escapeHtml(r.path)}</span>
+          </div>
+          ${escapeHtml(r.text)}
+        </div>
+      `).join('') || '<div class="box"><div class="body">No security rows matched.</div></div>';
+      document.getElementById('kpiVisible').textContent = String(rows.length);
+    }
+
+    function renderA11y() {
+      const rows = visibleFindings(f => /A11Y|ACCESSIBILITY|aria|WCAG|alt text|keyboard|focus/i.test(f.section + ' ' + f.text));
+      document.getElementById('a11y').innerHTML = rows.slice(0, 700).map(r => `
+        <div class="row">
+          <div class="meta">
+            <span class="pill ${sevClass(r.risk)}">${r.risk}</span>
+            <span class="pill">${escapeHtml(r.section)}</span>
+            <span class="pill mono">${escapeHtml(r.path)}</span>
+          </div>
+          ${escapeHtml(r.text)}
+        </div>
+      `).join('') || '<div class="box"><div class="body">No accessibility rows matched.</div></div>';
+      document.getElementById('kpiVisible').textContent = String(rows.length);
+    }
+
+    function renderFiles() {
+      const all = visibleFiles();
+      const pages = Math.max(1, Math.ceil(all.length / state.perPage));
+      if (state.filesPage > pages) state.filesPage = pages;
+      const start = (state.filesPage - 1) * state.perPage;
+      const list = all.slice(start, start + state.perPage);
+
+      const el = document.getElementById('files');
+      el.innerHTML = `
+        <div class="pager">
+          <span class="pill">${all.length} files</span>
+          <span class="pill">Page ${state.filesPage}/${pages}</span>
+          <button id="prevPage" class="btn" ${state.filesPage <= 1 ? 'disabled' : ''}>Prev</button>
+          <button id="nextPage" class="btn" ${state.filesPage >= pages ? 'disabled' : ''}>Next</button>
+        </div>
+        <div id="fileRows"></div>
+      `;
+      document.getElementById('fileRows').innerHTML = list.map(f => `
+        <details class="file">
+          <summary>
+            <span class="path">${escapeHtml(f.path)}</span>
+            <span class="pill">${escapeHtml(f.type)}</span>
+            <span class="pill ${sevClass(f.risk)}">${escapeHtml(f.riskRaw)}</span>
+          </summary>
+          <pre>${escapeHtml(f.block)}</pre>
+        </details>
+      `).join('') || '<div class="box"><div class="body">No files matched current filter.</div></div>';
+
+      const prev = document.getElementById('prevPage');
+      const next = document.getElementById('nextPage');
+      if (prev) prev.onclick = () => { state.filesPage--; renderCurrent(); };
+      if (next) next.onclick = () => { state.filesPage++; renderCurrent(); };
+
+      document.getElementById('kpiVisible').textContent = String(all.length);
+    }
+
+    function renderSummary() {
+      const txt = state.audit.summary || 'No summary section detected.';
+      const q = state.q.toLowerCase();
+      const out = q ? txt.split(/\r?\n/).filter(l => l.toLowerCase().includes(q)).join('\n') : txt;
+      document.getElementById('summary').innerHTML = `<div class="box"><h3>Audit Summary</h3><div class="body"><pre>${escapeHtml(out)}</pre></div></div>`;
+      document.getElementById('kpiVisible').textContent = String(out ? out.split(/\r?\n/).length : 0);
+    }
+
+    function renderCurrent() {
+      ['overview','queue','clusters','batches','security','a11y','files','summary'].forEach(id => {
+        document.getElementById(id).classList.toggle('active', id === state.tab);
+      });
+      if (state.tab === 'overview') renderOverview();
+      if (state.tab === 'queue') renderQueue();
+      if (state.tab === 'clusters') renderClusters();
+      if (state.tab === 'batches') renderBatches();
+      if (state.tab === 'security') renderSecurity();
+      if (state.tab === 'a11y') renderA11y();
+      if (state.tab === 'files') renderFiles();
+      if (state.tab === 'summary') renderSummary();
+    }
+
+    function bindUI() {
+      document.getElementById('tabs').addEventListener('click', (e) => {
+        const btn = e.target.closest('.tab-btn');
+        if (!btn) return;
+        state.tab = btn.dataset.tab;
+        state.filesPage = 1;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        renderCurrent();
+      });
+
+      document.getElementById('search').addEventListener('input', (e) => {
+        state.q = e.target.value || '';
+        state.filesPage = 1;
+        renderCurrent();
+      });
+
+      document.querySelectorAll('.risk-filter input').forEach(cb => {
+        cb.addEventListener('change', () => {
+          if (cb.checked) state.risks.add(cb.value); else state.risks.delete(cb.value);
+          state.filesPage = 1;
+          renderCurrent();
+        });
+      });
+
+      document.getElementById('expandFiles').onclick = () => document.querySelectorAll('#files details.file').forEach(x => x.open = true);
+      document.getElementById('collapseFiles').onclick = () => document.querySelectorAll('#files details.file').forEach(x => x.open = false);
+
+      document.getElementById('copyQueue').onclick = async () => {
+        const txt = state.action.queueRows.map(r => `${r.idx}. [${r.sev}] ${r.file} | ${r.issue} | ${r.fix}`).join('\n');
+        try {
+          await navigator.clipboard.writeText(txt || 'No queue data.');
+          const b = document.getElementById('copyQueue');
+          b.textContent = 'Copied';
+          setTimeout(() => b.textContent = 'Copy queue', 1200);
+        } catch {}
+      };
+    }
+
+    Promise.all([
+      fetch('./AUDIT_FULL_REPORT.md', { cache: 'no-store' }).then(r => { if(!r.ok) throw new Error('AUDIT file load failed'); return r.text(); }),
+      fetch('./ACTION_PLAN.md', { cache: 'no-store' }).then(r => { if(!r.ok) throw new Error('ACTION file load failed'); return r.text(); })
+    ]).then(([auditMd, actionMd]) => {
+      state.audit = parseAudit(auditMd);
+      state.action = parseAction(actionMd);
+
+      document.getElementById('kpiFiles').textContent = String(state.audit.files.length);
+      document.getElementById('kpiFindings').textContent = String(state.audit.findings.length);
+      document.getElementById('kpiQueue').textContent = String(state.action.queueRows.length);
+
+      bindUI();
+      renderCurrent();
+    }).catch(err => {
+      document.querySelector('main').innerHTML = `<div class="banner">Failed to load report files: ${escapeHtml(err.message)}</div>`;
+    });
+  </script>
+</body>
+</html>
