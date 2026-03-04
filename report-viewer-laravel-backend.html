@@ -1,0 +1,633 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Laravel Backend Audit Workspace</title>
+  <style>
+    :root {
+      --bg: #0f1220;
+      --panel: #171b2e;
+      --panel-2: #1f2540;
+      --ink: #eef2ff;
+      --muted: #aeb6d9;
+      --line: #313a63;
+      --brand: #37d0b8;
+      --critical: #ff5f7a;
+      --high: #ff9f43;
+      --medium: #ffd166;
+      --low: #74d680;
+      --clean: #83d4ff;
+      --chip: #2a3154;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(900px 500px at 80% -5%, #21284a 0%, transparent 55%), var(--bg);
+    }
+
+    .shell {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 14px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    aside { padding: 14px; position: sticky; top: 10px; height: fit-content; }
+    h1 { margin: 0; font-size: 20px; }
+    .hint { color: var(--muted); font-size: 13px; margin: 6px 0 14px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .stat {
+      background: #121830;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: #11162b;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(90deg, #17463f, #1f6d61);
+      border-color: #2aa590;
+      color: #f4fffc;
+    }
+
+    .search {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #10162c;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+    .chips label {
+      border: 1px solid var(--line);
+      background: var(--chip);
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: #dbe1ff;
+    }
+
+    .links a {
+      display: block;
+      color: var(--brand);
+      text-decoration: none;
+      font-size: 13px;
+      margin: 5px 0;
+    }
+
+    main { padding: 14px; min-height: 78vh; }
+
+    .banner {
+      border: 1px solid #2f4b60;
+      background: linear-gradient(90deg, #173347, #224234);
+      border-radius: 11px;
+      padding: 9px 12px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .box {
+      border: 1px solid var(--line);
+      background: #131a32;
+      border-radius: 11px;
+      overflow: hidden;
+    }
+
+    .box-head {
+      background: #11172d;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .box-body { padding: 10px 12px; }
+
+    .risk-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+    .bar { flex: 1; height: 9px; border-radius: 99px; background: #2c345a; overflow: hidden; }
+    .fill { height: 100%; }
+
+    .critical { background: var(--critical); }
+    .high { background: var(--high); }
+    .medium { background: var(--medium); }
+    .low { background: var(--low); }
+    .clean { background: var(--clean); }
+
+    .pill {
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      background: #25315e;
+      color: #dbe1ff;
+      white-space: nowrap;
+    }
+
+    .find-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 8px;
+      background: #131a32;
+      font-size: 13px;
+    }
+
+    .meta { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 6px; }
+    .mono { font-family: Consolas, "Courier New", monospace; font-size: 12px; }
+
+    details.file {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      margin-bottom: 9px;
+      overflow: hidden;
+      background: #131a32;
+    }
+
+    summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 9px 11px;
+      border-bottom: 1px solid transparent;
+    }
+
+    details[open] summary { border-bottom-color: var(--line); }
+    .path { font-size: 14px; font-weight: 600; word-break: break-word; }
+
+    pre {
+      margin: 0;
+      padding: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      background: #10162b;
+      color: #eff3ff;
+    }
+
+    .toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid var(--line);
+      background: #11162b;
+      color: var(--ink);
+      border-radius: 9px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .list { margin: 0; padding-left: 18px; }
+    .list li { margin: 7px 0; font-size: 13px; }
+
+    .hidden { display: none; }
+
+    .pager { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; }
+
+    @media (max-width: 1100px) {
+      .shell { grid-template-columns: 1fr; }
+      aside { position: static; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="card">
+      <h1>Laravel Audit Hub</h1>
+      <div class="hint">Tabs + per-tab search + clearer colors for backend teams.</div>
+
+      <div class="stats">
+        <div class="stat">Files<strong id="statFiles">0</strong></div>
+        <div class="stat">Findings<strong id="statFindings">0</strong></div>
+        <div class="stat">Clusters<strong id="statClusters">0</strong></div>
+        <div class="stat">Visible<strong id="statVisible">0</strong></div>
+      </div>
+
+      <div class="tabs" id="tabButtons">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="files">Files</button>
+        <button class="tab-btn" data-tab="security">Security</button>
+        <button class="tab-btn" data-tab="priority">Priority</button>
+        <button class="tab-btn" data-tab="summary">Summary</button>
+      </div>
+
+      <input id="globalSearch" class="search" placeholder="Search current tab..." />
+
+      <div class="chips">
+        <label><input type="checkbox" value="CRITICAL" checked>CRITICAL</label>
+        <label><input type="checkbox" value="HIGH" checked>HIGH</label>
+        <label><input type="checkbox" value="MEDIUM" checked>MEDIUM</label>
+        <label><input type="checkbox" value="LOW" checked>LOW</label>
+        <label><input type="checkbox" value="CLEAN" checked>CLEAN</label>
+      </div>
+
+      <div class="toolbar">
+        <button id="expandAll" class="btn" type="button">Expand all</button>
+        <button id="collapseAll" class="btn" type="button">Collapse all</button>
+        <button id="copyPlan" class="btn" type="button">Copy plan</button>
+      </div>
+
+      <div class="links">
+        <a href="./AUDIT_FULL_REPORT.md" target="_blank" rel="noopener">Open raw markdown</a>
+        <a href="./report-viewer.html" target="_blank" rel="noopener">Open old viewer</a>
+      </div>
+    </aside>
+
+    <main class="card">
+      <div class="banner">Structured for backend developers: see queue, search by tab, and execute fixes in batches.</div>
+
+      <section id="dashboard" class="tab-panel active"></section>
+      <section id="files" class="tab-panel"></section>
+      <section id="security" class="tab-panel"></section>
+      <section id="priority" class="tab-panel"></section>
+      <section id="summary" class="tab-panel"></section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      tab: 'dashboard',
+      q: '',
+      risks: new Set(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'CLEAN']),
+      filesPage: 1,
+      perPage: 80,
+      data: null,
+    };
+
+    function normalizeRisk(raw) {
+      const t = (raw || '').toUpperCase();
+      if (t.includes('CRITICAL')) return 'CRITICAL';
+      if (t.includes('HIGH')) return 'HIGH';
+      if (t.includes('MEDIUM')) return 'MEDIUM';
+      if (t.includes('LOW')) return 'LOW';
+      return 'CLEAN';
+    }
+
+    function stripFrontMatter(text) {
+      if (text.startsWith('---')) {
+        const end = text.indexOf('\n---', 3);
+        if (end !== -1) return text.slice(end + 4).replace(/^\s+/, '');
+      }
+      return text;
+    }
+
+    function sectionWeight(s) {
+      const x = s.toLowerCase();
+      if (x.includes('security')) return 2;
+      if (x.includes('bug')) return 1.7;
+      if (x.includes('validation')) return 1.3;
+      if (x.includes('missing')) return 1.1;
+      if (x.includes('dependencies')) return 0.6;
+      return 0.8;
+    }
+
+    function riskWeight(r) {
+      return ({ CRITICAL: 5, HIGH: 4, MEDIUM: 3, LOW: 2, CLEAN: 1 })[r] || 1;
+    }
+
+    function classifyIssue(text) {
+      const t = text.toLowerCase();
+      if (t.includes('authorization') || t.includes('policy') || t.includes('gate')) return 'Authorization';
+      if (t.includes('whereraw') || t.includes('raw sql') || t.includes('selectraw') || t.includes('db::raw')) return 'Raw SQL';
+      if (t.includes('md5') || t.includes('sha1')) return 'Weak Hashing';
+      if (t.includes('token') || t.includes('secret') || t.includes('sensitive')) return 'Secrets & Tokens';
+      if (t.includes('validation') || t.includes('formrequest')) return 'Input Validation';
+      if (t.includes('rate limit') || t.includes('throttle')) return 'Rate Limiting';
+      return 'Other';
+    }
+
+    function parseIssues(textBlock, path, risk) {
+      const lines = textBlock.split(/\r?\n/);
+      let section = 'General';
+      const issues = [];
+      for (const line of lines) {
+        if (line.startsWith('### ')) {
+          section = line.replace(/^###\s+/, '').trim();
+          continue;
+        }
+        if (!line.startsWith('- ')) continue;
+        const t = line.slice(2).trim();
+        if (!t || /no issues found/i.test(t)) continue;
+        if (/^This file depends on:|^Files that depend on this:|^Breaking this file affects:/i.test(t)) continue;
+        issues.push({
+          path, section, text: t, risk,
+          group: classifyIssue(t),
+          score: riskWeight(risk) * sectionWeight(section),
+          lc: (path + ' ' + section + ' ' + t).toLowerCase(),
+        });
+      }
+      return issues;
+    }
+
+    function parseReport(md) {
+      const text = stripFrontMatter(md);
+      const summaryMatch = text.match(/\n## .*AUDIT SUMMARY REPORT[\s\S]*$/m);
+      const summary = summaryMatch ? summaryMatch[0].trim() : '';
+      const main = summaryMatch ? text.slice(0, summaryMatch.index).trimEnd() : text;
+
+      const headers = [...main.matchAll(/^## FILE: (.+)$/gm)];
+      const files = [];
+      const findings = [];
+
+      for (let i = 0; i < headers.length; i++) {
+        const path = headers[i][1].trim();
+        const start = headers[i].index;
+        const end = i + 1 < headers.length ? headers[i + 1].index : main.length;
+        const block = main.slice(start, end).trim();
+
+        const type = (block.match(/^\*\*Type:\*\*\s*(.+)$/m) || [null, 'Other'])[1].trim();
+        const riskRaw = (block.match(/^\*\*Risk Level:\*\*\s*(.+)$/m) || [null, 'CLEAN'])[1].trim();
+        const risk = normalizeRisk(riskRaw);
+        const issues = parseIssues(block, path, risk);
+        findings.push(...issues);
+
+        files.push({ path, type, riskRaw, risk, block, lc: block.toLowerCase(), issueCount: issues.length });
+      }
+
+      const clustersMap = new Map();
+      for (const f of findings) {
+        if (!clustersMap.has(f.group)) clustersMap.set(f.group, { name: f.group, count: 0, files: new Set(), sample: f.text });
+        const x = clustersMap.get(f.group);
+        x.count += 1;
+        x.files.add(f.path);
+      }
+      const clusters = [...clustersMap.values()].map(x => ({ ...x, filesCount: x.files.size })).sort((a, b) => b.count - a.count);
+
+      const byRisk = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, CLEAN: 0 };
+      for (const f of files) byRisk[f.risk]++;
+
+      return { files, findings, clusters, summary, byRisk };
+    }
+
+    function riskClassName(r) { return r.toLowerCase(); }
+
+    function filteredFiles() {
+      const q = state.q.toLowerCase();
+      return state.data.files.filter(f => state.risks.has(f.risk) && (!q || f.lc.includes(q) || f.path.toLowerCase().includes(q)));
+    }
+
+    function filteredFindings(predicate) {
+      const q = state.q.toLowerCase();
+      return state.data.findings.filter(x => state.risks.has(x.risk) && (!q || x.lc.includes(q)) && (!predicate || predicate(x)));
+    }
+
+    function renderDashboard() {
+      const el = document.getElementById('dashboard');
+      const d = state.data;
+      const total = d.files.length || 1;
+
+      el.innerHTML = `
+        <div class="grid">
+          <div class="box">
+            <div class="box-head">Risk Distribution</div>
+            <div class="box-body">
+              ${['CRITICAL','HIGH','MEDIUM','LOW','CLEAN'].map(r => {
+                const c = d.byRisk[r] || 0;
+                const p = Math.round((c / total) * 100);
+                return `<div class="risk-row"><span class="pill ${riskClassName(r)}">${r}: ${c}</span><div class="bar"><div class="fill ${riskClassName(r)}" style="width:${p}%"></div></div><span class="pill">${p}%</span></div>`;
+              }).join('')}
+            </div>
+          </div>
+          <div class="box">
+            <div class="box-head">Top Issue Clusters</div>
+            <div class="box-body">
+              <ul class="list">
+                ${d.clusters.slice(0, 10).map(c => `<li><strong>${c.name}</strong> - ${c.count} findings across ${c.filesCount} files.</li>`).join('') || '<li>No findings detected.</li>'}
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderFiles() {
+      const el = document.getElementById('files');
+      const all = filteredFiles();
+      const pages = Math.max(1, Math.ceil(all.length / state.perPage));
+      if (state.filesPage > pages) state.filesPage = pages;
+      const start = (state.filesPage - 1) * state.perPage;
+      const list = all.slice(start, start + state.perPage);
+
+      el.innerHTML = `
+        <div class="toolbar">
+          <span class="pill">${all.length} matched files</span>
+          <span class="pill">Page ${state.filesPage}/${pages}</span>
+        </div>
+        <div id="filesList"></div>
+        <div class="pager">
+          <button class="btn" id="prevFiles" ${state.filesPage <= 1 ? 'disabled' : ''}>Prev</button>
+          <button class="btn" id="nextFiles" ${state.filesPage >= pages ? 'disabled' : ''}>Next</button>
+        </div>
+      `;
+
+      const box = document.getElementById('filesList');
+      box.innerHTML = list.map(f => `
+        <details class="file">
+          <summary>
+            <span class="path">${f.path}</span>
+            <span class="pill">${f.type}</span>
+            <span class="pill ${riskClassName(f.risk)}">${f.riskRaw}</span>
+            <span class="pill">Findings: ${f.issueCount}</span>
+          </summary>
+          <pre>${escapeHtml(f.block)}</pre>
+        </details>
+      `).join('') || '<div class="box"><div class="box-body">No files match filters.</div></div>';
+
+      const prev = document.getElementById('prevFiles');
+      const next = document.getElementById('nextFiles');
+      if (prev) prev.onclick = () => { state.filesPage--; renderCurrent(); };
+      if (next) next.onclick = () => { state.filesPage++; renderCurrent(); };
+
+      document.getElementById('expandAll').onclick = () => document.querySelectorAll('#files details.file').forEach(d => d.open = true);
+      document.getElementById('collapseAll').onclick = () => document.querySelectorAll('#files details.file').forEach(d => d.open = false);
+    }
+
+    function renderSecurity() {
+      const el = document.getElementById('security');
+      const list = filteredFindings(x => /security|sec-|token|secret|raw sql|authorization|policy|gate|md5|sha1/i.test((x.section + ' ' + x.text)));
+      el.innerHTML = `
+        <div class="toolbar"><span class="pill">${list.length} matched security findings</span></div>
+        ${list.slice(0, 500).map(i => `
+          <div class="find-item">
+            <div class="meta">
+              <span class="pill ${riskClassName(i.risk)}">${i.risk}</span>
+              <span class="pill">${i.section}</span>
+              <span class="pill mono">${i.path}</span>
+              <span class="pill">${i.group}</span>
+            </div>
+            ${escapeHtml(i.text)}
+          </div>
+        `).join('') || '<div class="box"><div class="box-body">No security findings for current filter/search.</div></div>'}
+      `;
+    }
+
+    function renderPriority() {
+      const el = document.getElementById('priority');
+      const list = filteredFindings().sort((a, b) => b.score - a.score);
+      el.innerHTML = `
+        <div class="toolbar"><span class="pill">${list.length} priority items matched</span></div>
+        ${list.slice(0, 250).map((i, idx) => `
+          <div class="find-item">
+            <div class="meta">
+              <span class="pill">#${idx + 1}</span>
+              <span class="pill ${riskClassName(i.risk)}">${i.risk}</span>
+              <span class="pill">${i.section}</span>
+              <span class="pill mono">${i.path}</span>
+            </div>
+            ${escapeHtml(i.text)}
+          </div>
+        `).join('') || '<div class="box"><div class="box-body">No priority items for current filters.</div></div>'}
+      `;
+
+      document.getElementById('copyPlan').onclick = async () => {
+        const payload = list.slice(0, 30).map((x, i) => `${i + 1}. [${x.risk}] ${x.path} | ${x.section} | ${x.text}`).join('\n');
+        try {
+          await navigator.clipboard.writeText(payload || 'No items matched.');
+          document.getElementById('copyPlan').textContent = 'Copied';
+          setTimeout(() => document.getElementById('copyPlan').textContent = 'Copy plan', 1200);
+        } catch {}
+      };
+    }
+
+    function renderSummary() {
+      const el = document.getElementById('summary');
+      const q = state.q.toLowerCase();
+      const lines = (state.data.summary || '').split(/\r?\n/);
+      const filtered = q ? lines.filter(l => l.toLowerCase().includes(q)) : lines;
+      el.innerHTML = `
+        <div class="toolbar"><span class="pill">${filtered.length} summary lines shown</span></div>
+        <div class="box"><div class="box-body"><pre>${escapeHtml(filtered.join('\n'))}</pre></div></div>
+      `;
+    }
+
+    function escapeHtml(s) {
+      return s
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+    }
+
+    function renderCurrent() {
+      if (!state.data) return;
+      ['dashboard','files','security','priority','summary'].forEach(id => {
+        document.getElementById(id).classList.toggle('active', id === state.tab);
+      });
+
+      if (state.tab === 'dashboard') renderDashboard();
+      if (state.tab === 'files') renderFiles();
+      if (state.tab === 'security') renderSecurity();
+      if (state.tab === 'priority') renderPriority();
+      if (state.tab === 'summary') renderSummary();
+
+      const vis = state.tab === 'files' ? filteredFiles().length : filteredFindings().length;
+      document.getElementById('statVisible').textContent = String(vis);
+    }
+
+    function bindUi() {
+      document.getElementById('tabButtons').addEventListener('click', e => {
+        const btn = e.target.closest('.tab-btn');
+        if (!btn) return;
+        state.tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        state.filesPage = 1;
+        renderCurrent();
+      });
+
+      document.getElementById('globalSearch').addEventListener('input', e => {
+        state.q = e.target.value || '';
+        state.filesPage = 1;
+        renderCurrent();
+      });
+
+      document.querySelectorAll('.chips input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          if (cb.checked) state.risks.add(cb.value); else state.risks.delete(cb.value);
+          state.filesPage = 1;
+          renderCurrent();
+        });
+      });
+    }
+
+    fetch('./AUDIT_FULL_REPORT.md', { cache: 'no-store' })
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to load AUDIT_FULL_REPORT.md');
+        return r.text();
+      })
+      .then(md => {
+        state.data = parseReport(md);
+        document.getElementById('statFiles').textContent = String(state.data.files.length);
+        document.getElementById('statFindings').textContent = String(state.data.findings.length);
+        document.getElementById('statClusters').textContent = String(state.data.clusters.length);
+        bindUi();
+        renderCurrent();
+      })
+      .catch(err => {
+        document.querySelector('main').innerHTML = `<div class="banner">${err.message}</div>`;
+      });
+  </script>
+</body>
+</html>
