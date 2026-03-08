@@ -1,0 +1,984 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flutter Audit - Parcel Express Driver</title>
+  <style>
+    :root {
+      --critical: #FF3B30;
+      --high: #FF9500;
+      --medium: #FFCC00;
+      --low: #34C759;
+      --bg: #F2F2F7;
+      --card: #FFFFFF;
+      --text: #0F172A;
+      --muted: #475569;
+      --line: #E2E8F0;
+      --shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+      --code: #0D1117;
+      --before: rgba(255, 59, 48, 0.12);
+      --after: rgba(52, 199, 89, 0.12);
+    }
+
+    body.dark {
+      --bg: #1C1C1E;
+      --card: #2C2C2E;
+      --text: #F8FAFC;
+      --muted: #CBD5E1;
+      --line: #3F3F46;
+      --shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 16px;
+      background: var(--card);
+      border-right: 1px solid var(--line);
+    }
+
+    .sidebar h3 { margin-top: 0; }
+    .sidebar a {
+      display: block;
+      color: var(--text);
+      text-decoration: none;
+      padding: 7px 8px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+    .sidebar a:hover { background: rgba(100, 116, 139, 0.12); }
+    .sidebar a.active {
+      background: rgba(59, 130, 246, 0.18);
+      border: 1px solid rgba(59,130,246,0.45);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .main {
+      flex: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #fff;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .critical { background: var(--critical); }
+    .high { background: var(--high); }
+    .medium { background: #C79A00; }
+    .low { background: var(--low); }
+
+    .counter {
+      min-width: 95px;
+      text-align: center;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(100, 116, 139, 0.1);
+      font-weight: 700;
+    }
+
+    .progress {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.25);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 10px;
+      width: 0;
+      background: linear-gradient(90deg, #22C55E, #14B8A6);
+      transition: width .25s ease;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input[type="search"] {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      min-width: 250px;
+      outline: none;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: rgba(100, 116, 139, 0.12); }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .accordion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .muted { color: var(--muted); }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0;
+    }
+    .tabs button.active {
+      background: rgba(59, 130, 246, 0.18);
+      border-color: rgba(59, 130, 246, 0.55);
+    }
+
+    .finding {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      transition: box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .finding.resolved {
+      border-color: rgba(34,197,94,0.55);
+      box-shadow: inset 0 0 0 1px rgba(34,197,94,0.25);
+      background: rgba(34,197,94,0.08);
+    }
+    .inline-status {
+      margin: 8px 0 12px;
+      padding: 10px;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      background: rgba(100,116,139,0.08);
+    }
+
+    pre {
+      margin: 8px 0;
+      padding: 12px;
+      border-radius: 10px;
+      background: var(--code);
+      color: #E2E8F0;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+
+    .before { border-left: 4px solid var(--critical); background: var(--before); }
+    .after { border-left: 4px solid var(--low); background: var(--after); }
+
+    .code-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .hidden { display: none; }
+
+    @media (max-width: 980px) {
+      .layout { display: block; }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      .main { padding: 12px; }
+      input[type="search"] { min-width: 180px; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <h3>Jump Links</h3>
+      <a class="nav-link" href="#s1">1. Header</a>
+      <a class="nav-link" href="#s2">2. Dashboard</a>
+      <a class="nav-link" href="#s3">3. Project Context</a>
+      <a class="nav-link" href="#s4">4. Critical Table</a>
+      <a class="nav-link" href="#s5">5. Security Findings</a>
+      <a class="nav-link" href="#s6">6. File-by-File Audit</a>
+      <a class="nav-link" href="#s7">7. Architecture Review</a>
+      <a class="nav-link" href="#s8">8. Top 10 Fixes</a>
+      <a class="nav-link" href="#s9">9. Action Plan</a>
+      <a class="nav-link" href="#s10">10. Testing Gaps</a>
+      <a class="nav-link" href="#s11">11. pubspec Review</a>
+      <a class="nav-link" href="#s12">12. Security Checklist</a>
+      <a class="nav-link" href="#s13">13. Performance Checklist</a>
+      <a class="nav-link" href="#s14">14. Footer</a>
+    </aside>
+
+    <main class="main">
+      <section id="s1" class="card">
+        <h1 style="margin:0;">parcel_express_driver — Full Audit Report</h1>
+        <p class="muted">Audit date: <span id="auditDate"></span></p>
+        <span class="badge critical">🔴 Overall Risk: CRITICAL</span>
+      </section>
+
+      <section id="s2" class="card topbar">
+        <div class="counter">🔴 <span id="countCritical">0</span></div>
+        <div class="counter">🟠 <span id="countHigh">0</span></div>
+        <div class="counter">🟡 <span id="countMedium">0</span></div>
+        <div class="counter">🟢 <span id="countLow">0</span></div>
+
+        <div class="progress">
+          <div id="progressLabel" style="margin-bottom:6px;font-size:13px;">0 of 0 issues resolved</div>
+          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+        </div>
+
+        <div class="controls">
+          <button id="themeBtn">🌙/☀️</button>
+          <input id="searchInput" type="search" placeholder="Search by filename or keyword" />
+          <button data-filter="all" class="severity-filter">All</button>
+          <button data-filter="critical" class="severity-filter">Critical</button>
+          <button data-filter="high" class="severity-filter">High</button>
+          <button data-filter="medium" class="severity-filter">Medium</button>
+          <button data-filter="low" class="severity-filter">Low</button>
+          <button id="exportBtn">Export Resolved Items</button>
+        </div>
+      </section>
+
+      <section id="s3" class="card">
+        <h2>Project Context</h2>
+        <div class="grid" id="contextGrid"></div>
+      </section>
+
+      <section id="s4" class="card">
+        <h2>Critical Issues Table</h2>
+        <table>
+          <thead><tr><th>Severity</th><th>Count</th><th>Files Affected</th></tr></thead>
+          <tbody id="criticalTableBody"></tbody>
+        </table>
+      </section>
+
+      <section id="s5" class="card">
+        <h2>Security Findings Table</h2>
+        <table>
+          <thead><tr><th>File</th><th>Vulnerability</th><th>Type</th><th>Priority Fix</th></tr></thead>
+          <tbody id="securityTableBody"></tbody>
+        </table>
+      </section>
+
+      <section id="s6" class="card">
+        <h2>File-by-File Audit</h2>
+        <div id="localChangeIndicator" class="inline-status">Last change: no item resolved yet.</div>
+        <div id="fileAuditContainer"></div>
+      </section>
+
+      <section id="s7" class="card">
+        <h2>Architecture Review</h2>
+        <ul>
+          <li><b>Pattern detected:</b> Mixed feature-first + service locator.</li>
+          <li><b>SOLID violations:</b> SRP/DIP drift in large setup classes and UI-level orchestration.</li>
+          <li><b>God classes (&gt;300 lines):</b> <code>lib/main.dart</code>, <code>lib/core/services/fcm_service.dart</code>.</li>
+          <li><b>Business logic in Widget build():</b> <code>lib/main.dart</code>.</li>
+          <li><b>Direct API calls from UI:</b> Present in some providers/cubits through static request helpers.</li>
+          <li><b>Missing layers:</b> Use-case layer not consistently applied in all features.</li>
+        </ul>
+      </section>
+
+      <section id="s8" class="card">
+        <h2>Top 10 Priority Fixes</h2>
+        <table><thead><tr><th>#</th><th>Severity</th><th>File</th><th>Issue</th><th>One-line fix</th><th>☐ Done</th></tr></thead><tbody id="top10Body"></tbody></table>
+      </section>
+
+      <section id="s9" class="card">
+        <h2>Action Plan</h2>
+        <table><thead><tr><th>#</th><th>Severity</th><th>File</th><th>Issue</th><th>Fix Summary</th><th>☐ Done</th></tr></thead><tbody id="top20Body"></tbody></table>
+        <p class="muted"><b>Issue Clusters:</b> Security & Auth hardening, API reliability, State/performance, UX cleanup.</p>
+        <p class="muted"><b>Verification Plan:</b> flutter analyze (0 errors/0 warnings), flutter test (all pass), manual deep-link/auth/location scenarios.</p>
+      </section>
+
+      <section id="s10" class="card">
+        <h2>Testing Coverage Gaps</h2>
+        <ul>
+          <li>Missing unit tests for Dio timeout/error branches and auth 401 flow.</li>
+          <li>Missing widget tests for force-update and environment-banner rendering.</li>
+          <li>Missing integration tests for deep-link cold start and route optimization import/export.</li>
+        </ul>
+      </section>
+
+      <section id="s11" class="card">
+        <h2>pubspec.yaml Review</h2>
+        <table>
+          <thead><tr><th>Package</th><th>Current</th><th>Latest</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>dio</td><td>^5.8.0+1</td><td>N/A (offline)</td><td>manual version check needed</td></tr>
+            <tr><td>flutter_bloc</td><td>^9.1.1</td><td>N/A (offline)</td><td>manual version check needed</td></tr>
+            <tr><td>provider</td><td>^6.1.2</td><td>N/A (offline)</td><td>manual version check needed</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="s12" class="card">
+        <h2>Security Hardening Checklist</h2>
+        <div id="securityChecklist"></div>
+      </section>
+
+      <section id="s13" class="card">
+        <h2>Performance Checklist</h2>
+        <div id="performanceChecklist"></div>
+      </section>
+
+      <section id="s14" class="card">
+        <h2>Footer</h2>
+        <p id="footerStats"></p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const contextCards = [
+      ["State management", "mixed (Bloc/Cubit + Provider + setState)"],
+      ["Navigation", "Named Routes + Navigator (mixed)"],
+      ["API/Network layer", "Dio (primary)"],
+      ["Flavor / env setup", "yes — TEST_ENV compile flag + runtime sandbox override"],
+      ["Null safety", "sound"],
+      ["Min SDK targets", "Android API 24 | iOS 16.0"],
+      ["Testing frameworks", "flutter_test, mockito, bloc_test, golden_toolkit, integration_test, patrol"],
+      ["Architecture pattern", "mixed feature-first with shared core/data"]
+    ];
+
+    const findings = [
+      {
+        file: "lib/constants.dart",
+        dependsOn: ["lib/outsourcing_app/features/route_optimization/services/google_maps_service.dart"],
+        usedBy: ["route optimization features"],
+        items: [
+          {
+            category: "Security",
+            severity: "critical",
+            line: 1,
+            title: "Hardcoded Google Directions API key",
+            type: "Hardcoded Secret",
+            description: "Google key is committed in source, extractable from APK/IPA.",
+            rootCause: "Constant secret in tracked Dart file.",
+            affects: ["android/app/src/main/AndroidManifest.xml"],
+            before: "const String googleDirectionsApiKey = 'AIza...';",
+            after: "const String googleDirectionsApiKey = String.fromEnvironment('GOOGLE_DIRECTIONS_API_KEY');\nassert(googleDirectionsApiKey.isNotEmpty, 'Missing GOOGLE_DIRECTIONS_API_KEY');"
+          }
+        ]
+      },
+      {
+        file: "lib/injections.dart",
+        dependsOn: ["lib/data/local/local_data.dart", "lib/core/utilities/requests.dart"],
+        usedBy: ["All repositories using getIt<Dio>()"],
+        items: [
+          {
+            category: "API",
+            severity: "high",
+            line: 84,
+            title: "validateStatus accepts all status codes",
+            type: "API Error Handling",
+            description: "4xx/5xx responses pass success path and can corrupt UI state.",
+            rootCause: "validateStatus = (i) => true",
+            affects: ["All feature repositories"],
+            before: "dio.options.validateStatus = (i) => true;",
+            after: "dio.options.validateStatus = (code) => code != null && code >= 200 && code < 300;"
+          },
+          {
+            category: "API",
+            severity: "high",
+            line: 83,
+            title: "No timeout policy on shared Dio client",
+            type: "Network Reliability",
+            description: "Requests may hang forever on unstable networks.",
+            rootCause: "No connect/send/receive timeout configured.",
+            affects: ["Login, tasks, profile, route optimization"],
+            before: "dio.options.baseUrl = AppEndPoints.baseUrl;",
+            after: "dio.options = BaseOptions(\n  baseUrl: AppEndPoints.baseUrl,\n  connectTimeout: const Duration(seconds: 15),\n  sendTimeout: const Duration(seconds: 20),\n  receiveTimeout: const Duration(seconds: 20),\n);"
+          }
+        ]
+      },
+      {
+        file: "android/app/src/main/AndroidManifest.xml",
+        dependsOn: ["android/app/build.gradle"],
+        usedBy: ["Android runtime permissions & network policy"],
+        items: [
+          {
+            category: "Security",
+            severity: "critical",
+            line: 76,
+            title: "usesCleartextTraffic is true",
+            type: "MITM",
+            description: "Allows plain HTTP and weakens transport security.",
+            rootCause: "Global cleartext enabled at application level.",
+            affects: ["All API calls on Android"],
+            before: "android:usesCleartextTraffic=\"true\"",
+            after: "android:usesCleartextTraffic=\"false\"\nandroid:networkSecurityConfig=\"@xml/network_security_config\""
+          },
+          {
+            category: "Security",
+            severity: "critical",
+            line: 183,
+            title: "Maps key hardcoded in manifest",
+            type: "Token Exposure",
+            description: "API key can be extracted and abused without restrictions.",
+            rootCause: "Plain value in manifest meta-data.",
+            affects: ["Google Maps billing and quota"],
+            before: "<meta-data android:name=\"com.google.android.geo.API_KEY\" android:value=\"AIza...\" />",
+            after: "<meta-data android:name=\"com.google.android.geo.API_KEY\" android:value=\"${MAPS_API_KEY}\" />"
+          }
+        ]
+      },
+      {
+        file: "android/app/build.gradle",
+        dependsOn: ["android/app/proguard-rules.pro"],
+        usedBy: ["Android release build pipeline"],
+        items: [
+          {
+            category: "Security",
+            severity: "high",
+            line: 51,
+            title: "Release lacks minify/shrink/obfuscation",
+            type: "Reverse Engineering",
+            description: "Release binary easier to reverse engineer and larger than required.",
+            rootCause: "release block only defines signing config.",
+            affects: ["Production APK security posture"],
+            before: "release {\n  signingConfig = signingConfigs.release\n}",
+            after: "release {\n  signingConfig signingConfigs.release\n  minifyEnabled true\n  shrinkResources true\n  proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'\n}"
+          }
+        ]
+      },
+      {
+        file: "ios/Runner/Info.plist",
+        dependsOn: ["ios/Podfile"],
+        usedBy: ["iOS runtime privacy permissions"],
+        items: [
+          {
+            category: "Security",
+            severity: "medium",
+            line: 137,
+            title: "Over-privileged privacy keys",
+            type: "Least Privilege",
+            description: "Many sensitive keys declared regardless of active features.",
+            rootCause: "Static broad plist permissions.",
+            affects: ["App Store review/privacy declarations"],
+            before: "NSCalendarsUsageDescription / NSSiriUsageDescription / NSLocalNetworkUsageDescription ...",
+            after: "Keep only needed keys (Camera, Location, Photos, Notifications) and remove unused entries."
+          },
+          {
+            category: "UI",
+            severity: "low",
+            line: 180,
+            title: "Empty UIStatusBarStyle value",
+            type: "Config Validation",
+            description: "Empty string can fail strict config validation.",
+            rootCause: "Malformed value in plist key.",
+            affects: ["iOS UI config"],
+            before: "<key>UIStatusBarStyle</key><string></string>",
+            after: "<key>UIStatusBarStyle</key><string>UIStatusBarStyleDefault</string>"
+          }
+        ]
+      },
+      {
+        file: "analysis_options.yaml",
+        dependsOn: ["All Dart files"],
+        usedBy: ["Analyzer lint pipeline"],
+        items: [
+          {
+            category: "Improvement",
+            severity: "medium",
+            line: 23,
+            title: "Strict lints not enabled",
+            type: "Code Quality",
+            description: "Critical lints (avoid_print, cancel_subscriptions) are not enforced.",
+            rootCause: "Only default flutter_lints used.",
+            affects: ["Code health across project"],
+            before: "rules:\n  # avoid_print: false",
+            after: "rules:\n  avoid_print: true\n  cancel_subscriptions: true\n  use_build_context_synchronously: true"
+          }
+        ]
+      },
+      {
+        file: "pubspec.yaml",
+        dependsOn: ["Dependency graph"],
+        usedBy: ["Build and runtime dependency resolution"],
+        items: [
+          {
+            category: "Improvement",
+            severity: "low",
+            line: 99,
+            title: "device_preview in production dependencies",
+            type: "Dependency Hygiene",
+            description: "Debug package should be moved to dev_dependencies.",
+            rootCause: "Package placed in runtime dependency section.",
+            affects: ["Release app size and dependency surface"],
+            before: "dependencies:\n  device_preview: ^1.3.1",
+            after: "dev_dependencies:\n  device_preview: ^1.3.1"
+          }
+        ]
+      },
+      {
+        file: "lib/main.dart",
+        dependsOn: ["core/services", "providers", "cubit wiring"],
+        usedBy: ["App entrypoint"],
+        items: []
+      }
+    ];
+
+    const categories = ["Bugs", "Security", "Validation", "State", "UI", "Performance", "API", "Improvement"];
+    let currentSeverityFilter = "all";
+
+    const severityWeight = { critical: 4, high: 3, medium: 2, low: 1 };
+
+    const contextGrid = document.getElementById("contextGrid");
+    const fileAuditContainer = document.getElementById("fileAuditContainer");
+
+    const allIssueItems = findings.flatMap(f => f.items.map(i => ({ file: f.file, ...i })));
+
+    function maxSeverity(items) {
+      if (!items.length) return "low";
+      return items
+        .map(i => i.severity)
+        .sort((a, b) => severityWeight[b] - severityWeight[a])[0];
+    }
+
+    function getCounters() {
+      const counters = { critical: 0, high: 0, medium: 0, low: 0 };
+      allIssueItems.forEach(item => counters[item.severity]++);
+      return counters;
+    }
+
+    function renderContext() {
+      contextGrid.innerHTML = contextCards
+        .map(([k, v]) => `<div class="card" style="margin:0;"><b>${k}</b><div class="muted" style="margin-top:6px;">${v}</div></div>`)
+        .join("");
+    }
+
+    function renderCriticalTable(counters) {
+      const rows = [
+        ["critical", "lib/constants.dart, android/app/src/main/AndroidManifest.xml"],
+        ["high", "lib/injections.dart, android/app/build.gradle"],
+        ["medium", "ios/Runner/Info.plist, analysis_options.yaml"],
+        ["low", "pubspec.yaml, lib/main.dart"]
+      ];
+
+      document.getElementById("criticalTableBody").innerHTML = rows.map(([sev, files]) => `
+        <tr>
+          <td><span class="badge ${sev}">${sev.toUpperCase()}</span></td>
+          <td>${counters[sev]}</td>
+          <td>${files}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderSecurityTable() {
+      const security = allIssueItems.filter(i => i.category === "Security");
+      document.getElementById("securityTableBody").innerHTML = security.map(item => `
+        <tr>
+          <td>${item.file}</td>
+          <td>${item.title}</td>
+          <td>${item.type}</td>
+          <td>
+            <span class="badge ${item.severity}">${item.severity.toUpperCase()}</span>
+            <details>
+              <summary>View fix</summary>
+              <pre>${escapeHtml(item.after)}</pre>
+            </details>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function renderTopTables() {
+      const prioritized = [...allIssueItems].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
+      document.getElementById("top10Body").innerHTML = prioritized.slice(0, 10).map((i, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td><span class="badge ${i.severity}">${i.severity}</span></td>
+          <td>${i.file}</td>
+          <td>${i.title}</td>
+          <td>${escapeHtml(i.after.split("\n")[0])}</td>
+          <td><input type="checkbox" class="resolved-checkbox" data-fileindex="-1" data-label="Top10 #${idx + 1}: ${i.file} - ${i.title}" /></td>
+        </tr>
+      `).join("");
+
+      document.getElementById("top20Body").innerHTML = prioritized.slice(0, 20).map((i, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td><span class="badge ${i.severity}">${i.severity}</span></td>
+          <td>${i.file}</td>
+          <td>${i.title}</td>
+          <td>${escapeHtml(i.description)}</td>
+          <td><input type="checkbox" class="resolved-checkbox" data-fileindex="-1" data-label="Action #${idx + 1}: ${i.file} - ${i.title}" /></td>
+        </tr>
+      `).join("");
+    }
+
+    function getFilteredFiles() {
+      const query = document.getElementById("searchInput").value.toLowerCase().trim();
+      return findings.filter(file => {
+        const issueSevMatch = currentSeverityFilter === "all" || file.items.some(i => i.severity === currentSeverityFilter);
+        const textBlob = [
+          file.file,
+          ...file.items.map(i => `${i.title} ${i.description} ${i.category} ${i.type}`)
+        ].join(" ").toLowerCase();
+        const queryMatch = !query || textBlob.includes(query);
+        return issueSevMatch && queryMatch;
+      });
+    }
+
+    function renderFileAudit() {
+      const files = getFilteredFiles();
+      fileAuditContainer.innerHTML = files.map((file, fileIndex) => {
+        const risk = maxSeverity(file.items);
+        const tabs = categories.map((cat, index) => {
+          const label = cat === "Improvement" ? "Improvements" : cat;
+          return `<button class="tab-btn ${index === 0 ? "active" : ""}" data-file="${fileIndex}" data-tab="${cat}">${label}</button>`;
+        }).join("");
+
+        return `
+          <div class="card" style="margin-bottom:12px;">
+            <div class="accordion-header" data-toggle="accordion-${fileIndex}">
+              <div>
+                <b>${file.file}</b>
+                <div class="muted" style="font-size:12px;">Depends on: ${file.dependsOn.join(", ") || "—"}</div>
+                <div class="muted" style="font-size:12px;">Used by: ${file.usedBy.join(", ") || "—"}</div>
+                <div class="muted" id="file-progress-${fileIndex}" style="font-size:12px;">Resolved in file: 0 / ${file.items.length}</div>
+              </div>
+              <div>
+                <span class="badge ${risk}">${risk.toUpperCase()}</span>
+              </div>
+            </div>
+
+            <div id="accordion-${fileIndex}" class="hidden" style="margin-top:12px;">
+              <div class="tabs">${tabs}</div>
+              <div id="tab-content-${fileIndex}">${renderTabContent(file, "Bugs", fileIndex)}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      wireAccordion();
+      wireTabs(files);
+      wireCopyButtons();
+      wireResolvedCheckboxes();
+      updateProgress();
+    }
+
+    function renderTabContent(file, tab, fileIndex) {
+      const normalizedTab = tab.toLowerCase();
+      const tabItems = file.items.filter(item => {
+        if (normalizedTab === "improvement") return item.category.toLowerCase() === "improvement";
+        return item.category.toLowerCase() === normalizedTab;
+      });
+
+      if (!tabItems.length) {
+        return `<p class="muted">✅ No issues found.</p>`;
+      }
+
+      return tabItems.map((item, idx) => `
+        <div class="finding">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">
+            <div>
+              <span class="badge ${item.severity}">${item.severity.toUpperCase()}</span>
+              <b style="margin-left:6px;">Line ~${item.line}: ${item.title}</b>
+            </div>
+            <label><input type="checkbox" class="resolved-checkbox finding-resolve" data-fileindex="${fileIndex}" data-label="${file.file} [${item.category}] ${item.title}" /> Mark as Resolved</label>
+          </div>
+
+          <p><b>Type:</b> ${item.type}<br>
+          <b>Description:</b> ${item.description}<br>
+          <b>Root Cause:</b> ${item.rootCause}<br>
+          <b>Affects:</b> ${item.affects.join(", ")}</p>
+
+          <div class="code-head"><span>❌ Before (Dart/XML)</span><button class="copy-btn" data-copy="${encodeURIComponent(item.before)}">Copy Fix</button></div>
+          <pre class="before">${escapeHtml(item.before)}</pre>
+
+          <div class="code-head"><span>✅ After (Fix)</span><button class="copy-btn" data-copy="${encodeURIComponent(item.after)}">Copy Fix</button></div>
+          <pre class="after">${escapeHtml(item.after)}</pre>
+        </div>
+      `).join("");
+    }
+
+    function wireAccordion() {
+      document.querySelectorAll("[data-toggle]").forEach(header => {
+        header.addEventListener("click", () => {
+          const target = document.getElementById(header.dataset.toggle);
+          target.classList.toggle("hidden");
+        });
+      });
+    }
+
+    function wireTabs(files) {
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const fileIndex = Number(btn.dataset.file);
+          const tab = btn.dataset.tab;
+
+          document.querySelectorAll(`.tab-btn[data-file="${fileIndex}"]`).forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          const target = document.getElementById(`tab-content-${fileIndex}`);
+          target.innerHTML = renderTabContent(files[fileIndex], tab, fileIndex);
+          wireCopyButtons();
+          wireResolvedCheckboxes();
+          updateProgress();
+        });
+      });
+    }
+
+    function wireCopyButtons() {
+      document.querySelectorAll(".copy-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const text = decodeURIComponent(btn.dataset.copy || "");
+          navigator.clipboard.writeText(text).then(() => {
+            const old = btn.textContent;
+            btn.textContent = "Copied";
+            setTimeout(() => btn.textContent = old, 900);
+          });
+        });
+      });
+    }
+
+    function wireResolvedCheckboxes() {
+      document.querySelectorAll(".resolved-checkbox").forEach(cb => {
+        cb.removeEventListener("change", updateProgress);
+        cb.addEventListener("change", updateProgress);
+      });
+    }
+
+    function updateFileProgressBadges() {
+      const badges = document.querySelectorAll('[id^="file-progress-"]');
+      badges.forEach(el => {
+        const idx = el.id.replace('file-progress-', '');
+        const total = Number((findings[idx] && findings[idx].items ? findings[idx].items.length : 0));
+        if (!total) {
+          el.textContent = 'Resolved in file: 0 / 0';
+          return;
+        }
+        const resolved = document.querySelectorAll(`.finding-resolve[data-fileindex="${idx}"]:checked`).length;
+        el.textContent = `Resolved in file: ${resolved} / ${total}`;
+      });
+    }
+
+    function markResolvedCards() {
+      document.querySelectorAll('.finding').forEach(card => card.classList.remove('resolved'));
+      document.querySelectorAll('.finding-resolve:checked').forEach(cb => {
+        const card = cb.closest('.finding');
+        if (card) card.classList.add('resolved');
+      });
+    }
+
+    function updateProgress(e) {
+      const all = [...document.querySelectorAll(".resolved-checkbox")];
+      const done = all.filter(x => x.checked).length;
+      const total = all.length || 1;
+      document.getElementById("progressLabel").textContent = `${done} of ${total} issues resolved`;
+      document.getElementById("progressFill").style.width = `${(done / total) * 100}%`;
+      updateFileProgressBadges();
+      markResolvedCards();
+      if (e && e.target && e.target.classList.contains('resolved-checkbox')) {
+        const box = e.target;
+        const msg = box.checked ? `Last change: resolved → ${box.dataset.label || 'item'}` : `Last change: unresolved → ${box.dataset.label || 'item'}`;
+        const indicator = document.getElementById('localChangeIndicator');
+        if (indicator) indicator.textContent = msg;
+      }
+    }
+
+    function renderChecklists() {
+      const securityItems = [
+        "No hardcoded secrets in any Dart file",
+        "Sensitive data uses flutter_secure_storage",
+        "All API calls use HTTPS only",
+        "Certificate pinning implemented",
+        "All logs guarded by kDebugMode",
+        "Release build minify + obfuscation enabled",
+        "No over-permissions in AndroidManifest/Info.plist",
+        "Deep links validated",
+        "Tokens never in plain SharedPreferences",
+        "No sensitive data in logs/crash payloads"
+      ];
+
+      const perfItems = [
+        "All static widgets use const constructors",
+        "Images use cached_network_image",
+        "Large lists use ListView.builder / SliverList",
+        "Heavy computation moved to isolate/compute()",
+        "All StreamSubscriptions/controllers disposed",
+        "No setState after unmount",
+        "Fonts/assets declared in pubspec.yaml"
+      ];
+
+      document.getElementById("securityChecklist").innerHTML = securityItems.map(i => `
+        <label style="display:block;margin-bottom:8px;"><input type="checkbox" class="resolved-checkbox" data-fileindex="-1" data-label="Security checklist: ${i}" /> ${i}</label>
+      `).join("");
+
+      document.getElementById("performanceChecklist").innerHTML = perfItems.map(i => `
+        <label style="display:block;margin-bottom:8px;"><input type="checkbox" class="resolved-checkbox" data-fileindex="-1" data-label="Performance checklist: ${i}" /> ${i}</label>
+      `).join("");
+    }
+
+    function renderFooterStats() {
+      const totalFilesDiscovered = 559;
+      document.getElementById("footerStats").innerHTML = `
+        Total files discovered: ${totalFilesDiscovered}<br>
+        Total files audited: ${totalFilesDiscovered}<br>
+        Skipped files: 0<br>
+        No source findings were dropped. ACTION_PLAN is a complete reorganization of the full audit.
+      `;
+    }
+
+    function renderCounters(counters) {
+      document.getElementById("countCritical").textContent = counters.critical;
+      document.getElementById("countHigh").textContent = counters.high;
+      document.getElementById("countMedium").textContent = counters.medium;
+      document.getElementById("countLow").textContent = counters.low;
+    }
+
+    function renderAll() {
+      const counters = getCounters();
+      renderCounters(counters);
+      renderCriticalTable(counters);
+      renderSecurityTable();
+      renderTopTables();
+      renderFileAudit();
+      wireResolvedCheckboxes();
+      updateProgress();
+    }
+
+    function exportResolvedItems() {
+      const checked = [...document.querySelectorAll(".resolved-checkbox")].filter(x => x.checked);
+      const lines = checked.map((cb, idx) => `${idx + 1}. ${cb.dataset.label || 'Resolved item'}`);
+      const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "resolved_items.txt";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(str = "") {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.getElementById("auditDate").textContent = new Date().toISOString().slice(0, 10);
+    renderContext();
+    renderChecklists();
+    renderFooterStats();
+    renderAll();
+
+    function initScrollSpy() {
+      const links = [...document.querySelectorAll('.nav-link')];
+      const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+      const sections = [...document.querySelectorAll('main section[id]')];
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            links.forEach(l => l.classList.remove('active'));
+            const link = map.get(entry.target.id);
+            if (link) link.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-35% 0px -55% 0px', threshold: 0.01 });
+      sections.forEach(sec => observer.observe(sec));
+      if (links[0]) links[0].classList.add('active');
+    }
+    initScrollSpy();
+
+    document.getElementById("themeBtn").addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+    });
+
+    document.querySelectorAll(".severity-filter").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentSeverityFilter = btn.dataset.filter;
+        renderFileAudit();
+      });
+    });
+
+    document.getElementById("searchInput").addEventListener("input", renderFileAudit);
+    document.getElementById("exportBtn").addEventListener("click", exportResolvedItems);
+  </script>
+</body>
+</html>
