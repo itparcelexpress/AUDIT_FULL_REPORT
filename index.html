@@ -1,0 +1,443 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flutter Audit Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --critical: #FF4757;
+      --high: #FF6B35;
+      --medium: #FFA502;
+      --low: #2ED573;
+      --clean: #1E90FF;
+      --bg: #0c111b;
+      --bg-alt: #111827;
+      --text: #e6edf7;
+      --muted: #8ea0bd;
+      --line: rgba(255,255,255,0.12);
+      --glass: rgba(255,255,255,0.06);
+      --shadow: 0 10px 35px rgba(0,0,0,0.35);
+      --ring-bg: #253247;
+      --ring-fg: #2ED573;
+    }
+    body.light {
+      --bg: #ecf2fb;
+      --bg-alt: #f8fbff;
+      --text: #12243d;
+      --muted: #4d6688;
+      --line: rgba(17,24,39,0.15);
+      --glass: rgba(255,255,255,0.78);
+      --shadow: 0 12px 25px rgba(18,36,61,0.12);
+      --ring-bg: #d6e3f7;
+      --ring-fg: #1E90FF;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(700px 420px at 12% -10%, rgba(30,144,255,0.2), transparent 60%),
+        radial-gradient(620px 380px at 90% -15%, rgba(255,107,53,0.14), transparent 60%),
+        linear-gradient(165deg, var(--bg), var(--bg-alt));
+      min-height: 100vh;
+    }
+    .wrap { width: min(1280px, calc(100% - 1.5rem)); margin: 0 auto 2rem; }
+    .glass {
+      backdrop-filter: blur(12px);
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    section { margin-top: 1rem; padding: 1rem; }
+    h1,h2,h3 { margin: 0; }
+    .hero h1 { font-size: clamp(1.2rem, 2.8vw, 2rem); }
+    .sub { color: var(--muted); margin-top: .4rem; }
+    .metrics { margin-top: .9rem; display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: .7rem; }
+    .metric { padding: .75rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(0,0,0,0.12); }
+    body.light .metric { background: rgba(255,255,255,0.62); }
+    .metric .k { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .07em; }
+    .metric .v { font-size: 1.35rem; font-weight: 800; margin-top: .2rem; }
+    .health { margin-top: .9rem; }
+    .bar { height: 12px; border-radius: 999px; background: rgba(148,163,184,.22); overflow: hidden; }
+    .bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg,#2ED573,#1E90FF); transition: width .8s ease; }
+
+    .nav { position: sticky; top: 0; z-index: 90; display: flex; align-items: center; gap: .4rem; overflow: auto; padding: .6rem; }
+    .nav a,.nav button,.ctrl {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: transparent;
+      border-radius: 999px;
+      padding: .42rem .72rem;
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .nav a.active { background: rgba(30,144,255,.2); border-color: rgba(30,144,255,.65); }
+
+    .cards { display: grid; gap: .65rem; }
+    .s-card { border: 1px solid var(--line); border-radius: 12px; padding: .8rem; background: rgba(0,0,0,.12); }
+    .s-head { display:flex; justify-content:space-between; gap:.5rem; flex-wrap:wrap; align-items:center; }
+    .badge { padding: .2rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 700; border:1px solid; }
+    .critical { color: var(--critical); }
+    .high { color: var(--high); }
+    .medium { color: var(--medium); }
+    .low { color: var(--low); }
+    .clean { color: var(--clean); }
+    .badge.critical { background: rgba(255,71,87,.13); border-color: rgba(255,71,87,.45); }
+    .badge.high { background: rgba(255,107,53,.14); border-color: rgba(255,107,53,.45); }
+    .badge.medium { background: rgba(255,165,2,.14); border-color: rgba(255,165,2,.45); }
+    .badge.low { background: rgba(46,213,115,.14); border-color: rgba(46,213,115,.45); }
+
+    details > summary { cursor: pointer; font-weight: 600; }
+    pre { margin: .6rem 0 0; padding: .75rem; border-radius: 10px; overflow: auto; border: 1px solid var(--line); background: #0a0f18; color: #dce6f7; font-family: 'Fira Code', monospace; font-size: .8rem; }
+    body.light pre { background: #e9f0fb; color: #0f2747; }
+    .code-wrap { position: relative; }
+    .copy { position:absolute; top: .35rem; right: .35rem; }
+    .kw { color: #ff8a7a; } .ty { color: #70b8ff; } .st { color: #7ce38b; } .cm { color: #9aa8bf; font-style: italic; }
+
+    .arch-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: .7rem; margin-top:.7rem; }
+    .node { border:1px dashed var(--line); border-radius: 12px; padding:.7rem; }
+
+    .controls { display:grid; grid-template-columns: 1.4fr repeat(3,minmax(120px,.8fr)); gap:.5rem; margin-bottom:.7rem; }
+    input,select { width:100%; background:transparent; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:.5rem .6rem; }
+    table { width:100%; border-collapse:collapse; font-size:.88rem; }
+    th,td { border-bottom:1px solid var(--line); padding:.55rem; text-align:left; vertical-align:top; }
+    tr.clickable { cursor:pointer; }
+    tr.expand td { background: rgba(30,144,255,.09); }
+    .pager { display:flex; gap:.4rem; margin-top:.6rem; align-items:center; }
+
+    .timeline { display:grid; gap:.65rem; }
+    .batch { border:1px solid var(--line); border-radius:12px; padding:.65rem; }
+    .task { border:1px solid var(--line); border-radius:10px; padding:.58rem; margin:.45rem 0; background: rgba(0,0,0,.12); }
+    .task.done { border-color: rgba(46,213,115,.55); background: rgba(46,213,115,.1); }
+
+    .list { display:grid; gap:.35rem; margin-top:.5rem; }
+    .ring { width:88px; height:88px; border-radius:50%; background: conic-gradient(var(--ring-fg) calc(var(--p) * 1%), var(--ring-bg) 0); display:grid; place-items:center; }
+    .ring > b { width:64px; height:64px; border-radius:50%; display:grid; place-items:center; background: var(--bg-alt); font-size:.9rem; }
+
+    mark.find { background: #ffe88e; color:#181818; padding:0 .08em; border-radius: 3px; }
+
+    @media (max-width: 900px) { .controls { grid-template-columns: 1fr; } }
+    @media print {
+      .nav,.ctrl,.copy,.pager,.controls { display:none !important; }
+      body { background: #fff; color: #000; }
+      .glass, section, .metric, .task, .s-card { box-shadow:none; background:#fff; border-color:#bbb; }
+      pre { background:#fff; color:#000; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section id="hero" class="glass hero" tabindex="-1">
+      <div style="display:flex;justify-content:space-between;gap:.6rem;align-items:start;flex-wrap:wrap;">
+        <div>
+          <h1>parcel_express_driver Audit Dashboard</h1>
+          <div class="sub">Audit Date: <span id="auditDate"></span></div>
+        </div>
+        <button id="modeBtn" class="ctrl" aria-label="Toggle light and dark mode">Toggle Mode</button>
+      </div>
+      <div class="metrics">
+        <article class="metric"><div class="k">Total Files Audited</div><div id="mFiles" class="v">0</div></article>
+        <article class="metric"><div class="k">Critical Issues</div><div id="mCritical" class="v critical">0</div></article>
+        <article class="metric"><div class="k">Security Findings</div><div id="mSecurity" class="v high">0</div></article>
+        <article class="metric"><div class="k">Files Clean</div><div id="mClean" class="v clean">0</div></article>
+      </div>
+      <div class="health">
+        <div class="sub" id="healthLabel">Overall Health Score: 0%</div>
+        <div class="bar" aria-label="health progress"><i id="healthFill"></i></div>
+      </div>
+    </section>
+
+    <nav class="glass nav" aria-label="Section navigation">
+      <a href="#overview" class="active">Overview</a>
+      <a href="#security">Security</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#files">Files</a>
+      <a href="#action">Action Plan</a>
+      <a href="#checklists">Checklist</a>
+      <a href="#dod">Definition of Done</a>
+      <input id="globalSearch" class="ctrl" style="margin-left:auto;min-width:220px" placeholder="Global search (Ctrl+F style)" />
+    </nav>
+
+    <section id="overview" class="glass" tabindex="-1">
+      <h2>1. Hero Header</h2>
+      <p class="sub">Metrics are computed from hardcoded audit records and findings.</p>
+    </section>
+
+    <section id="security" class="glass" tabindex="-1">
+      <h2>2. Security Findings Section</h2>
+      <div id="securityCards" class="cards"></div>
+    </section>
+
+    <section id="architecture" class="glass" tabindex="-1">
+      <h2>3. Architecture Review Section</h2>
+      <div class="arch-grid">
+        <div class="node"><b>Detected Stack</b><div class="sub">Flutter + Dart, Dio, Bloc/Cubit + Provider, Firebase, GetIt</div></div>
+        <div class="node"><b>State Pattern</b><div class="sub">Mixed: Cubit/Bloc + Provider + localized widget state</div></div>
+        <div class="node"><b>SOLID Violations</b><ul><li class="high">SRP drift in large service wiring</li><li class="medium">DIP drift via direct helper coupling</li><li class="medium">OCP gaps in repeated condition logic</li></ul></div>
+        <div class="node"><b>God Classes</b><ul><li class="high">lib/main.dart</li><li class="medium">lib/core/services/fcm_service.dart</li></ul></div>
+        <div class="node"><b>Anti-patterns</b><ul><li>Hardcoded secrets</li><li>Broad permissions</li><li>Inconsistent boundary layers</li></ul></div>
+      </div>
+    </section>
+
+    <section id="files" class="glass" tabindex="-1">
+      <h2>4. File Audit Table</h2>
+      <div class="controls">
+        <input id="fileSearch" placeholder="Search file, issue, dependency" />
+        <select id="riskFilter"><option value="all">All Risks</option><option>critical</option><option>high</option><option>medium</option><option>low</option><option>clean</option></select>
+        <select id="typeFilter"><option value="all">All Types</option></select>
+        <select id="featureFilter"><option value="all">All Features</option></select>
+      </div>
+      <table>
+        <thead><tr><th>File</th><th>Type</th><th>Risk Level</th><th>Issues Count</th><th>Category</th></tr></thead>
+        <tbody id="fileRows"></tbody>
+      </table>
+      <div class="pager">
+        <button id="prevPage" class="ctrl">Prev</button>
+        <span id="pageLabel" class="sub"></span>
+        <button id="nextPage" class="ctrl">Next</button>
+      </div>
+    </section>
+
+    <section id="action" class="glass" tabindex="-1">
+      <h2>5. Action Plan Section</h2>
+      <div id="timeline" class="timeline"></div>
+    </section>
+
+    <section id="checklists" class="glass" tabindex="-1">
+      <h2>6. Interactive Checklists</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.8rem;">
+        <div class="s-card"><h3>Security Hardening Checklist</h3><div class="ring" id="secRing" style="--p:0"><b id="secPct">0%</b></div><div id="secList" class="list"></div></div>
+        <div class="s-card"><h3>Performance Checklist</h3><div class="ring" id="perfRing" style="--p:0"><b id="perfPct">0%</b></div><div id="perfList" class="list"></div></div>
+      </div>
+    </section>
+
+    <section id="dod" class="glass" tabindex="-1">
+      <h2>7. Definition of Done</h2>
+      <div class="ring" id="dodRing" style="--p:0"><b id="dodPct">0%</b></div>
+      <div id="dodList" class="list" style="margin-top:.7rem;"></div>
+    </section>
+  </div>
+
+  <script>
+    const contextCards = [
+      ["State management", "mixed (Bloc/Cubit + Provider + setState)"],
+      ["Navigation", "Named Routes + Navigator (mixed)"],
+      ["API/Network layer", "Dio (primary)"],
+      ["Flavor / env setup", "yes - TEST_ENV compile flag + runtime sandbox override"],
+      ["Null safety", "sound"],
+      ["Min SDK targets", "Android API 24 | iOS 16.0"],
+      ["Testing frameworks", "flutter_test, mockito, bloc_test, golden_toolkit, integration_test, patrol"],
+      ["Architecture pattern", "mixed feature-first with shared core/data"]
+    ];
+
+    const findings = [
+      { file: "lib/constants.dart", dependsOn: ["lib/outsourcing_app/features/route_optimization/services/google_maps_service.dart"], usedBy: ["route optimization features"], items: [{ category: "Security", severity: "critical", line: 1, title: "Hardcoded Google Directions API key", type: "Hardcoded Secret", description: "Google key is committed in source, extractable from APK/IPA.", rootCause: "Constant secret in tracked Dart file.", affects: ["android/app/src/main/AndroidManifest.xml"], before: "const String googleDirectionsApiKey = 'AIza...';", after: "const String googleDirectionsApiKey = String.fromEnvironment('GOOGLE_DIRECTIONS_API_KEY');\nassert(googleDirectionsApiKey.isNotEmpty, 'Missing GOOGLE_DIRECTIONS_API_KEY');" }] },
+      { file: "lib/injections.dart", dependsOn: ["lib/data/local/local_data.dart", "lib/core/utilities/requests.dart"], usedBy: ["All repositories using getIt<Dio>()"], items: [
+        { category: "API", severity: "high", line: 84, title: "validateStatus accepts all status codes", type: "API Error Handling", description: "4xx/5xx responses pass success path and can corrupt UI state.", rootCause: "validateStatus = (i) => true", affects: ["All feature repositories"], before: "dio.options.validateStatus = (i) => true;", after: "dio.options.validateStatus = (code) => code != null && code >= 200 && code < 300;" },
+        { category: "API", severity: "high", line: 83, title: "No timeout policy on shared Dio client", type: "Network Reliability", description: "Requests may hang forever on unstable networks.", rootCause: "No connect/send/receive timeout configured.", affects: ["Login, tasks, profile, route optimization"], before: "dio.options.baseUrl = AppEndPoints.baseUrl;", after: "dio.options = BaseOptions(\n  baseUrl: AppEndPoints.baseUrl,\n  connectTimeout: const Duration(seconds: 15),\n  sendTimeout: const Duration(seconds: 20),\n  receiveTimeout: const Duration(seconds: 20),\n);" }
+      ]},
+      { file: "android/app/src/main/AndroidManifest.xml", dependsOn: ["android/app/build.gradle"], usedBy: ["Android runtime permissions & network policy"], items: [
+        { category: "Security", severity: "critical", line: 76, title: "usesCleartextTraffic is true", type: "MITM", description: "Allows plain HTTP and weakens transport security.", rootCause: "Global cleartext enabled at application level.", affects: ["All API calls on Android"], before: "android:usesCleartextTraffic=\"true\"", after: "android:usesCleartextTraffic=\"false\"\nandroid:networkSecurityConfig=\"@xml/network_security_config\"" },
+        { category: "Security", severity: "critical", line: 183, title: "Maps key hardcoded in manifest", type: "Token Exposure", description: "API key can be extracted and abused without restrictions.", rootCause: "Plain value in manifest meta-data.", affects: ["Google Maps billing and quota"], before: "<meta-data android:name=\"com.google.android.geo.API_KEY\" android:value=\"AIza...\" />", after: "<meta-data android:name=\"com.google.android.geo.API_KEY\" android:value=\"${MAPS_API_KEY}\" />" }
+      ]},
+      { file: "android/app/build.gradle", dependsOn: ["android/app/proguard-rules.pro"], usedBy: ["Android release build pipeline"], items: [{ category: "Security", severity: "high", line: 51, title: "Release lacks minify/shrink/obfuscation", type: "Reverse Engineering", description: "Release binary easier to reverse engineer and larger than required.", rootCause: "release block only defines signing config.", affects: ["Production APK security posture"], before: "release {\n  signingConfig = signingConfigs.release\n}", after: "release {\n  signingConfig signingConfigs.release\n  minifyEnabled true\n  shrinkResources true\n  proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'\n}" }]},
+      { file: "ios/Runner/Info.plist", dependsOn: ["ios/Podfile"], usedBy: ["iOS runtime privacy permissions"], items: [
+        { category: "Security", severity: "medium", line: 137, title: "Over-privileged privacy keys", type: "Least Privilege", description: "Many sensitive keys declared regardless of active features.", rootCause: "Static broad plist permissions.", affects: ["App Store review/privacy declarations"], before: "NSCalendarsUsageDescription / NSSiriUsageDescription / NSLocalNetworkUsageDescription ...", after: "Keep only needed keys (Camera, Location, Photos, Notifications) and remove unused entries." },
+        { category: "UI", severity: "low", line: 180, title: "Empty UIStatusBarStyle value", type: "Config Validation", description: "Empty string can fail strict config validation.", rootCause: "Malformed value in plist key.", affects: ["iOS UI config"], before: "<key>UIStatusBarStyle</key><string></string>", after: "<key>UIStatusBarStyle</key><string>UIStatusBarStyleDefault</string>" }
+      ]},
+      { file: "analysis_options.yaml", dependsOn: ["All Dart files"], usedBy: ["Analyzer lint pipeline"], items: [{ category: "Improvement", severity: "medium", line: 23, title: "Strict lints not enabled", type: "Code Quality", description: "Critical lints (avoid_print, cancel_subscriptions) are not enforced.", rootCause: "Only default flutter_lints used.", affects: ["Code health across project"], before: "rules:\n  # avoid_print: false", after: "rules:\n  avoid_print: true\n  cancel_subscriptions: true\n  use_build_context_synchronously: true" }]},
+      { file: "pubspec.yaml", dependsOn: ["Dependency graph"], usedBy: ["Build and runtime dependency resolution"], items: [{ category: "Improvement", severity: "low", line: 99, title: "device_preview in production dependencies", type: "Dependency Hygiene", description: "Debug package should be moved to dev_dependencies.", rootCause: "Package placed in runtime dependency section.", affects: ["Release app size and dependency surface"], before: "dependencies:\n  device_preview: ^1.3.1", after: "dev_dependencies:\n  device_preview: ^1.3.1" }]},
+      { file: "lib/main.dart", dependsOn: ["core/services", "providers", "cubit wiring"], usedBy: ["App entrypoint"], items: [] }
+    ];
+
+    const securityChecklist = [
+      "No hardcoded secrets in any Dart file","Sensitive data uses flutter_secure_storage","All API calls use HTTPS only","Certificate pinning implemented","All logs guarded by kDebugMode","Release build minify + obfuscation enabled","No over-permissions in AndroidManifest/Info.plist","Deep links validated","Tokens never in plain SharedPreferences","No sensitive data in logs/crash payloads"
+    ];
+    const perfChecklist = [
+      "All static widgets use const constructors","Images use cached_network_image","Large lists use ListView.builder / SliverList","Heavy computation moved to isolate/compute()","All StreamSubscriptions/controllers disposed","No setState after unmount","Fonts/assets declared in pubspec.yaml"
+    ];
+    const dodItems = [
+      "All critical and high security findings have applied fixes",
+      "File dependencies/relationships validated after changes",
+      "Action-plan tasks moved to done state with verification",
+      "Security checklist completion >= 90%",
+      "Performance checklist completion >= 90%",
+      "No regressions in startup, auth, and core flows"
+    ];
+
+    const LS = {
+      tasks: 'audit_tasks_done_v1',
+      sec: 'audit_sec_v1',
+      perf: 'audit_perf_v1',
+      dod: 'audit_dod_v1',
+      mode: 'audit_mode_v1'
+    };
+
+    const sevOrder = { critical: 4, high: 3, medium: 2, low: 1, clean: 0 };
+    const allIssues = findings.flatMap(f => f.items.map(i => ({...i, file: f.file, dependsOn: f.dependsOn, usedBy: f.usedBy})));
+    const allSecurity = allIssues.filter(i => i.category.toLowerCase() === 'security');
+
+    function esc(s=''){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
+    function maxRisk(file){ if(!file.items.length) return 'clean'; return [...file.items].sort((a,b)=>sevOrder[b.severity]-sevOrder[a.severity])[0].severity; }
+    function typeOf(file){ const ext = (file.file.split('.').pop()||'').toLowerCase(); if(['dart'].includes(ext)) return 'Dart'; if(['xml','plist','gradle','yaml','yml'].includes(ext)) return 'Config'; return 'Other'; }
+    function highlightDart(code){
+      let x = esc(code);
+      x = x.replace(/(\/\/.*)$/gm,'<span class="cm">$1</span>');
+      x = x.replace(/\b(class|const|final|var|return|if|else|assert|true|false|null|await|async|new|extends|implements|void)\b/g,'<span class="kw">$1</span>');
+      x = x.replace(/\b(String|int|double|bool|Duration|BaseOptions)\b/g,'<span class="ty">$1</span>');
+      x = x.replace(/('[^']*'|"[^"]*")/g,'<span class="st">$1</span>');
+      return x;
+    }
+
+    function setMetrics(){
+      const files = findings.length;
+      const critical = allIssues.filter(i=>i.severity==='critical').length;
+      const sec = allSecurity.length;
+      const clean = findings.filter(f=>f.items.length===0).length;
+      const totalWeighted = allIssues.reduce((a,i)=>a+sevOrder[i.severity],0);
+      const maxW = Math.max(allIssues.length*4,1);
+      const health = Math.max(0,Math.round((1-totalWeighted/maxW)*100));
+      document.getElementById('mFiles').textContent = files;
+      document.getElementById('mCritical').textContent = critical;
+      document.getElementById('mSecurity').textContent = sec;
+      document.getElementById('mClean').textContent = clean;
+      document.getElementById('healthLabel').textContent = `Overall Health Score: ${health}%`;
+      document.getElementById('healthFill').style.width = `${health}%`;
+    }
+
+    function renderSecurity(){
+      const box = document.getElementById('securityCards');
+      box.innerHTML = allSecurity.map((i,idx)=>`<article class="s-card" tabindex="0"><div class="s-head"><div><b>${esc(i.file)}</b><div class="sub">${esc(i.type)}</div></div><div><span class="badge ${i.severity}">${i.severity.toUpperCase()}</span></div></div><p>${esc(i.description)}</p><details><summary>Exact fix</summary><div class="code-wrap"><button class="ctrl copy" data-copy="sec-${idx}">Copy</button><pre><code>${highlightDart(i.after)}</code></pre></div></details></article>`).join('');
+      document.querySelectorAll('[data-copy^="sec-"]').forEach(btn=>btn.addEventListener('click',()=>{
+        const i = Number(btn.dataset.copy.split('-')[1]); navigator.clipboard.writeText(allSecurity[i].after);
+      }));
+    }
+
+    let page = 1, perPage = 20;
+    function getFileFiltered(){
+      const q = document.getElementById('fileSearch').value.toLowerCase().trim();
+      const rf = document.getElementById('riskFilter').value;
+      const tf = document.getElementById('typeFilter').value;
+      const ff = document.getElementById('featureFilter').value;
+      return findings.filter(f=>{
+        const risk = maxRisk(f);
+        const t = typeOf(f);
+        const feature = (f.file.split('/')[1]||'root');
+        const blob = `${f.file} ${f.dependsOn.join(' ')} ${f.usedBy.join(' ')} ${f.items.map(i=>`${i.title} ${i.description}`).join(' ')}`.toLowerCase();
+        return (!q || blob.includes(q)) && (rf==='all'||rf===risk) && (tf==='all'||tf===t) && (ff==='all'||ff===feature);
+      });
+    }
+
+    function renderFileRows(){
+      const rows = getFileFiltered();
+      const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+      if(page > totalPages) page = totalPages;
+      const slice = rows.slice((page-1)*perPage, page*perPage);
+      document.getElementById('pageLabel').textContent = `Page ${page} / ${totalPages} (${rows.length} files)`;
+      const body = document.getElementById('fileRows');
+      body.innerHTML = slice.map((f,idx)=>{
+        const risk = maxRisk(f);
+        const type = typeOf(f);
+        const cats = [...new Set(f.items.map(i=>i.category))].join(', ') || 'CLEAN';
+        const rid = `r-${(page-1)*perPage+idx}`;
+        return `<tr class="clickable" data-row="${rid}" tabindex="0"><td>${esc(f.file)}</td><td>${type}</td><td><span class="badge ${risk}">${risk.toUpperCase()}</span></td><td>${f.items.length}</td><td>${esc(cats)}</td></tr><tr class="expand" id="${rid}" hidden><td colspan="5"><b>Depends on:</b> ${esc(f.dependsOn.join(', ')||'-')}<br><b>Used by:</b> ${esc(f.usedBy.join(', ')||'-')}<br><b>Findings:</b><br>${f.items.length?f.items.map(i=>`- [${i.severity.toUpperCase()}] ${esc(i.title)}: ${esc(i.description)}`).join('<br>'):'- No issues found.'}</td></tr>`;
+      }).join('');
+      body.querySelectorAll('tr.clickable').forEach(tr=>{
+        const toggle=()=>{ const t = document.getElementById(tr.dataset.row); t.hidden=!t.hidden; };
+        tr.addEventListener('click', toggle);
+        tr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } });
+      });
+    }
+
+    function renderFilters(){
+      const types = [...new Set(findings.map(typeOf))].sort();
+      const features = [...new Set(findings.map(f=>(f.file.split('/')[1]||'root')))].sort();
+      document.getElementById('typeFilter').innerHTML = '<option value="all">All Types</option>' + types.map(t=>`<option>${t}</option>`).join('');
+      document.getElementById('featureFilter').innerHTML = '<option value="all">All Features</option>' + features.map(t=>`<option>${esc(t)}</option>`).join('');
+    }
+
+    function priorityFromSev(sev){ return sev==='critical' ? 'P0' : sev==='high' ? 'P1' : sev==='medium' ? 'P2' : 'P3'; }
+    function effortFromSev(sev){ return sev==='critical' ? 'L' : sev==='high' ? 'M' : sev==='medium' ? 'S' : 'XS'; }
+
+    function renderAction(){
+      const items = [...allIssues].sort((a,b)=>sevOrder[b.severity]-sevOrder[a.severity]);
+      const batches = [items.filter(i=>i.severity==='critical'), items.filter(i=>i.severity==='high'), items.filter(i=>i.severity==='medium'), items.filter(i=>i.severity==='low')];
+      const done = JSON.parse(localStorage.getItem(LS.tasks) || '{}');
+      const c = document.getElementById('timeline');
+      c.innerHTML = batches.map((batch,bi)=>`<div class="batch" data-batch="${bi}" tabindex="0"><b>Batch ${bi+1}</b><div class="sub">${batch.length} tasks</div>${batch.map((t,ti)=>{ const id=`B${bi+1}-T${ti+1}`; const k=`${id}:${t.file}:${t.title}`; const isDone=!!done[k]; return `<article class="task ${isDone?'done':''}" draggable="true" data-task="${esc(k)}"><div><span class="badge ${t.severity}">${priorityFromSev(t.severity)}</span> <b>${id} ${esc(t.title)}</b></div><div class="sub">Scope: ${esc(t.file)}</div><div>What to do: ${esc(t.after)}</div><div style="color:var(--critical)">What NOT to touch: unrelated modules and dependency versions not listed in this task.</div><div class="sub">Effort: <b>${effortFromSev(t.severity)}</b></div></article>`;}).join('')}</div>`).join('');
+      enableDragDone();
+    }
+
+    function enableDragDone(){
+      const done = JSON.parse(localStorage.getItem(LS.tasks) || '{}');
+      document.querySelectorAll('.task').forEach(t=>{
+        t.addEventListener('dragstart', e=>e.dataTransfer.setData('text/plain', t.dataset.task));
+      });
+      document.querySelectorAll('.batch').forEach(b=>{
+        b.addEventListener('dragover', e=>e.preventDefault());
+        b.addEventListener('drop', e=>{
+          e.preventDefault(); const key=e.dataTransfer.getData('text/plain');
+          done[key]=!done[key]; localStorage.setItem(LS.tasks, JSON.stringify(done)); renderAction();
+        });
+      });
+    }
+
+    function renderCheckList(containerId, items, storeKey, ringId, pctId){
+      const state = JSON.parse(localStorage.getItem(storeKey) || '{}');
+      const host = document.getElementById(containerId);
+      host.innerHTML = items.map((t,i)=>`<label><input type="checkbox" data-k="${i}" ${state[i]?'checked':''}/> ${esc(t)}</label>`).join('');
+      host.querySelectorAll('input').forEach(cb=>cb.addEventListener('change', ()=>{
+        state[cb.dataset.k] = cb.checked; localStorage.setItem(storeKey, JSON.stringify(state)); renderCheckList(containerId, items, storeKey, ringId, pctId);
+      }));
+      const done = Object.values(state).filter(Boolean).length;
+      const pct = Math.round((done/(items.length||1))*100);
+      document.getElementById(ringId).style.setProperty('--p', pct);
+      document.getElementById(pctId).textContent = pct + '%';
+    }
+
+    function wireNavSpy(){
+      const links=[...document.querySelectorAll('.nav a')];
+      const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+      const obs=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('active')); const link=map.get(e.target.id); if(link) link.classList.add('active');}})},{rootMargin:'-40% 0px -45% 0px',threshold:.01});
+      [...document.querySelectorAll('section[id]')].forEach(s=>obs.observe(s));
+    }
+
+    function highlightAll(term){
+      document.querySelectorAll('mark.find').forEach(m=>{ const txt=document.createTextNode(m.textContent); m.replaceWith(txt); });
+      if(!term) return;
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {acceptNode(node){ return node.parentElement && !['SCRIPT','STYLE'].includes(node.parentElement.tagName) && node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }});
+      const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig');
+      const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
+      nodes.forEach(t=>{ const v=t.nodeValue; if(!re.test(v)) return; re.lastIndex=0; const frag=document.createDocumentFragment(); let last=0,m; while((m=re.exec(v))){ frag.appendChild(document.createTextNode(v.slice(last,m.index))); const mk=document.createElement('mark'); mk.className='find'; mk.textContent=m[0]; frag.appendChild(mk); last=re.lastIndex; } frag.appendChild(document.createTextNode(v.slice(last))); t.parentNode.replaceChild(frag,t); });
+    }
+
+    function init(){
+      document.getElementById('auditDate').textContent = new Date().toISOString().slice(0,10);
+      const mode = localStorage.getItem(LS.mode); if(mode==='light') document.body.classList.add('light');
+      setMetrics(); renderSecurity(); renderFilters(); renderFileRows(); renderAction();
+      renderCheckList('secList', securityChecklist, LS.sec, 'secRing', 'secPct');
+      renderCheckList('perfList', perfChecklist, LS.perf, 'perfRing', 'perfPct');
+      renderCheckList('dodList', dodItems, LS.dod, 'dodRing', 'dodPct');
+      wireNavSpy();
+
+      document.getElementById('modeBtn').addEventListener('click', ()=>{ document.body.classList.toggle('light'); localStorage.setItem(LS.mode, document.body.classList.contains('light')?'light':'dark'); });
+      ['fileSearch','riskFilter','typeFilter','featureFilter'].forEach(id=>document.getElementById(id).addEventListener('input', ()=>{page=1; renderFileRows();}));
+      document.getElementById('prevPage').addEventListener('click', ()=>{ page=Math.max(1,page-1); renderFileRows(); });
+      document.getElementById('nextPage').addEventListener('click', ()=>{ page+=1; renderFileRows(); });
+      document.getElementById('globalSearch').addEventListener('input', e=>highlightAll(e.target.value.trim()));
+      document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.key.toLowerCase()==='f'){ e.preventDefault(); document.getElementById('globalSearch').focus(); } });
+    }
+
+    init();
+  </script>
+</body>
+</html>
